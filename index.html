@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>관리 콘솔 연습 — 연수용 시뮬레이터</title>
+<meta name="description" content="Google Workspace 관리자 연수를 위한 비공식 연습용 관리 콘솔 시뮬레이터입니다. 실제 설정은 변경되지 않습니다.">
+<meta name="theme-color" content="#ffffff">
+<meta property="og:title" content="관리 콘솔 연습 — 연수용 시뮬레이터">
+<meta property="og:description" content="안전하게 눌러보며 익히는 Google Workspace 관리자 연수">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/pages.css">
+<link rel="stylesheet" href="assets/css/console.css">
+</head>
+<body>
+
+<!-- 로그인(계정 선택) 화면 -->
+<div id="signin" class="signin-shell" hidden>
+  <div class="signin-card">
+    <div class="google-wordmark" aria-label="Google">
+      <span style="color:#4285f4">G</span><span style="color:#ea4335">o</span><span style="color:#fbbc05">o</span><span style="color:#4285f4">g</span><span style="color:#34a853">l</span><span style="color:#ea4335">e</span>
+    </div>
+    <h1>계정 선택</h1>
+    <p class="signin-sub">계속하려면 <b>관리 콘솔</b>로 이동할 계정을 선택하세요.</p>
+    <div class="account-list">
+      <button class="account-row" data-signin="sen">
+        <span class="account-avatar sen">학교</span>
+        <span class="account-text">
+          <strong>연습학교 관리자</strong>
+          <small>admin@school.sen.ms.kr</small>
+          <em>센스쿨(SEN) 학교 관리자 — 권한 일부 제한</em>
+        </span>
+      </button>
+      <button class="account-row" data-signin="full">
+        <span class="account-avatar full">최고</span>
+        <span class="account-text">
+          <strong>최고 관리자</strong>
+          <small>superadmin@school.sen.ms.kr</small>
+          <em>모든 메뉴 사용 가능 — 비교용</em>
+        </span>
+      </button>
+    </div>
+    <p class="signin-note">연습용 시뮬레이터입니다. 입력한 내용은 이 브라우저에만 저장되며 실제 조직 설정은 절대 변경되지 않습니다.</p>
+    <div class="signin-domain">school.sen.ms.kr · 연습 전용</div>
+  </div>
+  <footer class="signin-footer">
+    <span>© Google Certified Trainer &amp; Innovator Sujin Lee</span>
+    <a href="mailto:gajungssamzzang@gmail.com">문의: gajungssamzzang@gmail.com</a>
+    <small>비공식 교육용 시뮬레이터 · Google LLC와 제휴하거나 Google이 승인한 서비스가 아닙니다.</small>
+  </footer>
+</div>
+
+<!-- 콘솔 -->
+<div id="app" class="app-shell" hidden>
+  <header class="topbar">
+    <button class="icon-button" id="menu-toggle" aria-label="기본 메뉴" title="기본 메뉴"><span class="msi">menu</span></button>
+    <a class="brand" href="#/home" data-nav="home::">
+      <svg class="brand-logo" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2 21 7v10l-9 5-9-5V7z" fill="#1a73e8"/>
+        <path d="M12 6.6 16.8 9.3v5.4L12 17.4 7.2 14.7V9.3z" fill="#fff"/>
+        <circle cx="12" cy="12" r="2.1" fill="#1a73e8"/>
+      </svg>
+      <span class="brand-text">Admin</span>
+    </a>
+    <label class="searchbox">
+      <span class="msi">search</span>
+      <input id="search-input" type="search" placeholder="사용자, 그룹, 설정 또는 기기 검색" autocomplete="off">
+    </label>
+    <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="연습 모드 전환">
+        <button data-mode="sen" title="센스쿨(SEN) 학교 관리자 권한으로 보기">센스쿨</button>
+        <button data-mode="full" title="최고 관리자 권한으로 보기">최고관리자</button>
+      </div>
+      <button class="icon-button desktop-only" data-toast="작업" aria-label="작업"><span class="msi">hourglass_empty</span></button>
+      <button class="icon-button" data-toast="도움말" aria-label="도움말"><span class="msi">help</span></button>
+      <button class="icon-button desktop-only" data-toast="Google 앱" aria-label="Google 앱"><span class="msi">apps</span></button>
+      <button class="profile-button" id="profile-button" aria-label="계정"></button>
+    </div>
+  </header>
+
+  <div class="workspace" id="workspace">
+    <aside class="sidebar" id="sidebar">
+      <nav class="nav-list" id="nav-list"></nav>
+      <div class="sidebar-spacer"></div>
+      <button class="nav-item feedback" data-toast="의견 보내기"><span class="msi">feedback</span><span>의견 보내기</span></button>
+      <div class="sidebar-legal">
+        <span>© 2026 Google LLC</span>
+        <span class="legal-links"><a href="#" data-toast="서비스 약관">서비스 약관</a> - <a href="#" data-toast="결제 조건">결제 조건</a> - <a href="#" data-toast="개인정보처리방침">개인정보처리방침</a></span>
+        <small>연수용 시뮬레이터 · © Google Certified Trainer &amp; Innovator Sujin Lee · <a href="mailto:gajungssamzzang@gmail.com">gajungssamzzang@gmail.com</a></small>
+      </div>
+    </aside>
+
+    <main class="content" id="content"></main>
+
+    <aside class="tools-rail" id="tools-rail">
+      <button class="rail-toggle" id="rail-toggle" aria-label="도구 패널 접기"><span class="msi">chevron_right</span></button>
+      <div class="rail-body">
+        <h2>도구</h2>
+        <button class="rail-item" data-toast="Google Workspace 상태 대시보드"><span class="msi">list_alt</span>Google Workspace 상태 대시보드</button>
+        <button class="rail-item" data-toast="Google Meet 설정"><span class="msi">forum</span>Google Meet 동영상 설정</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

@@ -361,7 +361,7 @@ button{font-family:inherit;cursor:pointer}
 
 /* 좁은 화면 보정 */
 .practice-strip{flex-wrap:wrap}
-.practice-strip>span{flex:1 1 240px;min-width:0}
+.practice-strip>span:not(.msi){flex:1 1 240px;min-width:0}
 .practice-strip button{white-space:nowrap}
 .home-head{flex-wrap:wrap}
 @media(max-width:860px){

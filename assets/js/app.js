@@ -1,5 +1,5 @@
 // 관리 콘솔 연습 시뮬레이터 — 셸(상단바/사이드바/라우팅/상태) 및 공용 부품
-import { SECTIONS, visibleSections, visibleLinks, findSection, isRestricted } from './nav.js';
+import { SECTIONS, visibleSections, navTree, flatPaths, firstLeaf, leafOf, findSection, isRestricted } from './nav.js';
 import homeView from './views/home.js';
 import directoryViews from './views/directory.js';
 import miscViews from './views/misc.js';
@@ -13,12 +13,20 @@ const POLICY_KEY = 'admin-sim:policies';
 
 const SEED = {
   orgs: [
-    { id: 'org-root', name: '연습학교', parent: '', description: '연습학교' },
-    { id: 'org-admin', name: '1.관리자', parent: '연습학교', description: '-' },
-    { id: 'org-teachers', name: '2.교원', parent: '연습학교', description: '-' },
-    { id: 'org-students', name: '3.학생', parent: '연습학교', description: '-' },
-    { id: 'org-tablets', name: '4.태블릿기기', parent: '연습학교', description: '-' },
-    { id: 'org-chromebooks', name: '5.크롬북(삭제금지)', parent: '연습학교', description: '-' },
+    { id: 'org-root', name: '연습학교', parent: '', description: '연습학교 최상위 조직' },
+    { id: 'org-admin', name: '1.관리자', parent: '연습학교', description: '관리자 계정' },
+    { id: 'org-teachers', name: '2.교원', parent: '연습학교', description: '교사 계정' },
+    { id: 'org-students', name: '3.학생', parent: '연습학교', description: '학생 계정' },
+    { id: 'org-students-1', name: '1학년', parent: '3.학생', description: '-' },
+    { id: 'org-students-2', name: '2학년', parent: '3.학생', description: '-' },
+    { id: 'org-students-3', name: '3학년', parent: '3.학생', description: '-' },
+    { id: 'org-tablets', name: '4.태블릿기기', parent: '연습학교', description: '태블릿 기기 전용' },
+    { id: 'org-tablets-t', name: '교사용 태블릿', parent: '4.태블릿기기', description: '-' },
+    { id: 'org-tablets-s', name: '학생용 태블릿', parent: '4.태블릿기기', description: '-' },
+    { id: 'org-chromebooks', name: '5.크롬북(삭제금지)', parent: '연습학교', description: '크롬북 기기 전용 · 삭제 금지' },
+    { id: 'org-chromebooks-1', name: '크롬북 1학년', parent: '5.크롬북(삭제금지)', description: '-' },
+    { id: 'org-chromebooks-2', name: '크롬북 2학년', parent: '5.크롬북(삭제금지)', description: '-' },
+    { id: 'org-chromebooks-3', name: '크롬북 3학년', parent: '5.크롬북(삭제금지)', description: '-' },
   ],
   users: [
     { id: 'admin-locked', firstName: '관리자', lastName: '최고', email: 'admin@school.sen.ms.kr', org: '1.관리자', status: '보호됨' },
@@ -99,10 +107,16 @@ function crumb(text) {
 function currentOu() {
   return state.local.selectedOu || '연습학교';
 }
+/** 조직 단위 트리를 depth 순서대로 펼친 목록 */
+function orgRows(parentName = '', depth = 0) {
+  return state.orgs
+    .filter((o) => (parentName ? o.parent === parentName : !o.parent))
+    .flatMap((o) => [{ ...o, depth, hasChildren: state.orgs.some((c) => c.parent === o.name) }, ...orgRows(o.name, depth + 1)]);
+}
+
 function ouPicker(selected) {
   const active = selected || currentOu();
-  const root = state.orgs.find((o) => !o.parent) || { name: '연습학교' };
-  const children = state.orgs.filter((o) => o.parent);
+  const rows = orgRows();
   return `<aside class="org-tree compact">
     <div class="ou-picker-tabs">
       <button data-toast="브라우저 탭">브라우저</button>
@@ -111,8 +125,10 @@ function ouPicker(selected) {
       <button class="active">조직 단위</button>
     </div>
     <label class="ou-search tight">${icon('search', 16)}<input placeholder="조직 단위 검색"></label>
-    <button class="tree-root ${active === root.name ? 'selected' : ''}" data-set="selectedOu::${esc(root.name)}">${icon('expand_more', 16)} ${esc(root.name)}</button>
-    ${children.map((o) => `<button class="tree-child ${active === o.name ? 'selected' : ''}" data-set="selectedOu::${esc(o.name)}">${esc(o.name)}</button>`).join('')}
+    ${rows.map((o) => `<button class="${o.depth === 0 ? 'tree-root' : 'tree-child'} ${active === o.name ? 'selected' : ''}"
+        style="padding-left:${12 + o.depth * 16}px" data-set="selectedOu::${esc(o.name)}">
+        ${o.hasChildren ? icon('arrow_drop_down', 16) : '<span class="ou-spacer"></span>'}${esc(o.name)}
+      </button>`).join('')}
   </aside>`;
 }
 function adminListPage({ title, breadcrumb, description, columns = [], rows = [], actionLabel, emptyHint }) {
@@ -131,6 +147,26 @@ function adminListPage({ title, breadcrumb, description, columns = [], rows = []
     </div>
   </div>`;
 }
+/* ---------------- 어디서나 수정 가능한 값 ---------------- */
+/** 저장된 값이 있으면 그 값, 없으면 기본값 */
+function setting(scope, name, fallback = '') {
+  const saved = policies[scope]?.[name];
+  return saved === undefined ? fallback : saved;
+}
+/**
+ * 클릭하면 편집 다이얼로그가 열리는 값.
+ * options 를 주지 않으면 '사용 / 사용 안함' 두 가지로 처리합니다.
+ */
+function editable({ scope, name, value = '', options, title, section, className = '' }) {
+  const list = options && options.length ? options : ['사용', '사용 안함'];
+  const current = setting(scope, name, value);
+  const payload = esc(JSON.stringify({ s: scope, n: name, o: list, d: value, t: section || title || name }));
+  const changed = policies[scope]?.[name] !== undefined;
+  return `<button type="button" class="editable ${className} ${changed ? 'changed' : ''}" data-edit="${payload}" title="클릭하여 변경">
+    <span>${esc(current || '설정되지 않음')}</span>${icon('edit', 16)}
+  </button>`;
+}
+
 function policyValue(scope, item) {
   const saved = policies[scope]?.[item.name];
   if (saved !== undefined) return saved;
@@ -170,6 +206,9 @@ const ctx = {
   adminListPage,
   policyTable,
   currentOu,
+  orgRows,
+  setting,
+  editable,
   local: (key, fallback) => (state.local[key] === undefined ? fallback : state.local[key]),
   setLocal: (key, value) => { state.local[key] = value; renderView(); },
   toast,
@@ -191,50 +230,75 @@ function practiceToast(label) {
 }
 
 /* ---------------- 라우팅 ---------------- */
-function navigate(sectionId, link) {
+function navigate(sectionId, path) {
   const section = findSection(sectionId) || findSection('home');
   state.section = section.id;
-  const links = visibleLinks(section, state.mode);
-  state.link = link !== undefined && link !== '' ? link : (links[0] || '');
+  state.link = path !== undefined && path !== '' ? path : firstLeaf(section, state.mode);
   state.query = '';
   if ($('#search-input')) $('#search-input').value = '';
   state.expanded = { [section.id]: true };
   if (window.innerWidth < 860) state.sidebarOpen = false;
   window.scrollTo({ top: 0 });
-  const hash = `#/${section.id}${state.link ? `/${encodeURIComponent(state.link)}` : ''}`;
+  const hash = `#/${section.id}${state.link ? `/${state.link.split('/').map(encodeURIComponent).join('/')}` : ''}`;
   if (location.hash !== hash) { suppressHash = true; location.hash = hash; }
   render();
 }
 let suppressHash = false;
 function readHash() {
-  const parts = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/');
+  const parts = location.hash.replace(/^#\/?/, '').split('/').map((p) => {
+    try { return decodeURIComponent(p); } catch { return p; }
+  });
   if (!parts[0]) return;
   const section = findSection(parts[0]);
   if (!section) return;
   state.section = section.id;
-  state.link = parts[1] || visibleLinks(section, state.mode)[0] || '';
+  state.link = parts.slice(1).filter(Boolean).join('/') || firstLeaf(section, state.mode);
   state.expanded = { [section.id]: true };
 }
 
 /* ---------------- 렌더: 사이드바 ---------------- */
+// 현재 경로가 node.path 아래에 있는지
+const onPath = (path) => state.link === path || String(state.link).startsWith(`${path}/`);
+
+function renderNavNodes(sectionId, nodes, depth) {
+  const isActiveSection = state.section === sectionId;
+  return `<div class="subitems ${depth > 0 ? 'nested' : ''}">${nodes.map((node) => {
+    const hasChildren = node.children.length > 0;
+    const inPath = isActiveSection && onPath(node.path);
+    const open = hasChildren && (inPath || state.expanded[`${sectionId}:${node.path}`]);
+    const current = isActiveSection && state.link === node.path;
+    const cls = [
+      hasChildren ? 'has-children' : '',
+      current ? 'active' : '',
+      hasChildren && inPath ? 'expanded' : '',
+    ].filter(Boolean).join(' ');
+    return `<div class="nav-branch depth-${depth}">
+      <button class="${cls}" data-nav="${sectionId}::${esc(node.path)}">
+        ${hasChildren ? `<span class="nav-chevron">${icon(open ? 'arrow_drop_down' : 'arrow_right', 18)}</span>` : ''}
+        <span class="nav-label">${esc(node.name)}</span>
+      </button>
+      ${open ? renderNavNodes(sectionId, node.children, depth + 1) : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
 function renderNav() {
   const sections = visibleSections(state.mode);
   $('#nav-list').innerHTML = sections.map((section) => {
-    const links = visibleLinks(section, state.mode);
+    const tree = navTree(section, state.mode);
     const isActive = state.section === section.id;
-    const open = links.length > 0 && (state.expanded[section.id] || isActive);
-    const chevron = links.length === 0
+    const open = tree.length > 0 && (state.expanded[section.id] || isActive);
+    const chevron = tree.length === 0
       ? ''
-      : `<span class="nav-chevron">${icon(open ? 'expand_more' : 'chevron_right', 18)}</span>`;
+      : `<span class="nav-chevron">${icon(open ? 'arrow_drop_down' : 'arrow_right', 18)}</span>`;
     return `<div class="nav-group">
-      <button class="nav-item ${isActive ? (links.length ? 'active-parent' : 'active') : ''} ${links.length ? '' : 'no-chevron'}"
+      <button class="nav-item ${isActive ? (tree.length ? 'active-parent' : 'active') : ''} ${tree.length ? '' : 'no-chevron'}"
               data-nav="${section.id}::">
         ${chevron}${icon(section.icon, 22)}<span class="nav-label">${esc(section.title)}</span>
         ${section.blueDot ? '<i class="blue-dot"></i>' : ''}
         ${section.badge ? `<em>${esc(section.badge)}</em>` : ''}
       </button>
-      ${open ? `<div class="subitems">${links.map((link) => `
-        <button class="${isActive && state.link === link ? 'active' : ''}" data-nav="${section.id}::${esc(link)}">${esc(link)}</button>`).join('')}</div>` : ''}
+      ${open ? renderNavNodes(section.id, tree, 0) : ''}
     </div>`;
   }).join('');
 }
@@ -264,21 +328,21 @@ function renderView() {
     html = homeView.render(ctx);
     view = homeView;
   } else {
-    const registry = VIEW_MAP[section.id];
-    view = registry && registry[state.link];
-    if (!view && miscViews[section.id]) {
-      const sectionViews = miscViews[section.id];
-      view = sectionViews[state.link] || sectionViews['*'];
-    }
+    const registry = VIEW_MAP[section.id] || {};
+    const sectionViews = miscViews[section.id] || {};
+    const leaf = leafOf(state.link);
+    view = registry[state.link] || sectionViews[state.link]
+      || registry[leaf] || sectionViews[leaf]
+      || sectionViews['*'];
     if (view) {
       html = view.render(ctx);
     } else {
       html = adminListPage({
-        title: state.link || section.title,
-        breadcrumb: section.title,
+        title: leaf || section.title,
+        breadcrumb: [section.title, ...String(state.link).split('/').slice(0, -1)].join(' > '),
         description: section.subtitle,
         columns: ['이름', '상태', '적용', '비고'],
-        rows: (section.links.length ? section.links : [section.title]).map((l, i) => [l, i % 2 ? '사용 중' : '준비됨', '연습학교', '예시']),
+        rows: flatPaths(section, state.mode).slice(0, 6).map((l, i) => [leafOf(l), i % 2 ? '사용 중' : '준비됨', '연습학교', '예시']),
         actionLabel: '항목 추가',
       });
     }
@@ -300,17 +364,17 @@ function deniedPage(section) {
 function searchResults(query) {
   const q = query.trim().toLowerCase();
   const sections = visibleSections(state.mode).filter((s) => (
-    `${s.title} ${s.subtitle || ''} ${visibleLinks(s, state.mode).join(' ')}`.toLowerCase().includes(q)
+    `${s.title} ${s.subtitle || ''} ${flatPaths(s, state.mode).join(' ')}`.toLowerCase().includes(q)
   ));
   const hiddenHits = state.mode === 'sen'
-    ? SECTIONS.filter((s) => !s.sen && `${s.title} ${s.subtitle || ''} ${s.links.join(' ')}`.toLowerCase().includes(q))
+    ? SECTIONS.filter((s) => !s.sen && `${s.title} ${s.subtitle || ''} ${flatPaths(s, 'full').join(' ')}`.toLowerCase().includes(q))
     : [];
   return `<div class="search-results">
     <p class="eyebrow">통합 검색</p>
     <h1>검색 결과</h1>
     <p>${sections.length}개의 메뉴를 찾았습니다.</p>
     <div>${sections.map((s) => `
-      <button data-nav="${s.id}::${esc(visibleLinks(s, state.mode)[0] || '')}">
+      <button data-nav="${s.id}::${esc(firstLeaf(s, state.mode))}">
         <span class="section-icon">${icon(s.icon, 21)}</span>
         <span><strong>${esc(s.title)}</strong><small>${esc(s.subtitle || '')}</small></span>
         ${icon('chevron_right', 20)}
@@ -398,7 +462,7 @@ function renderModal() {
 
 /* ---------------- 이벤트 위임 ---------------- */
 document.addEventListener('click', (event) => {
-  const target = event.target.closest('[data-signin],[data-mode],[data-nav],[data-toast],[data-set],[data-policy],[data-modal],[data-close-modal],[data-backdrop],[data-close-toast],[data-policy-reset],[data-action]');
+  const target = event.target.closest('[data-signin],[data-mode],[data-nav],[data-toast],[data-set],[data-policy],[data-edit],[data-modal],[data-close-modal],[data-backdrop],[data-close-toast],[data-policy-reset],[data-action]');
   if (!target) return;
 
   if (target.hasAttribute('data-signin')) {
@@ -426,7 +490,7 @@ document.addEventListener('click', (event) => {
     event.preventDefault();
     const [sectionId, link] = target.getAttribute('data-nav').split('::');
     const section = findSection(sectionId);
-    if (section && state.section === sectionId && !link && section.links.length) {
+    if (section && state.section === sectionId && !link && (section.links || []).length) {
       state.expanded[sectionId] = !state.expanded[sectionId];
       renderNav();
       return;
@@ -435,6 +499,20 @@ document.addEventListener('click', (event) => {
     return;
   }
   if (target.hasAttribute('data-modal')) { openModal(target.getAttribute('data-modal')); return; }
+  if (target.hasAttribute('data-edit')) {
+    event.preventDefault();
+    let payload;
+    try { payload = JSON.parse(target.getAttribute('data-edit')); } catch { return; }
+    const options = payload.o && payload.o.length ? payload.o : ['사용', '사용 안함'];
+    openModal('policy', {
+      scope: payload.s,
+      name: payload.n,
+      sectionLabel: payload.t,
+      current: setting(payload.s, payload.n, payload.d),
+      options,
+    });
+    return;
+  }
   if (target.hasAttribute('data-policy')) {
     const [scope, name] = target.getAttribute('data-policy').split('::');
     const item = findPolicyItem(scope, name);

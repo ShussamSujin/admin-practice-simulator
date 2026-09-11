@@ -33,36 +33,62 @@ const USER_ROWS = [
   ['정도윤', 'doyoon@school.sen.ms.kr', '1.관리자', '64'],
 ];
 
-function featureList(ctx, rows) {
+const SERVICE_STATE_OPTIONS = ['모든 사용자에 사용', '사용 중지됨', '일부 조직에만 사용'];
+const ON_OFF_OPTIONS = ['사용', '사용 안함'];
+
+/** 생성형 AI 설정은 모두 현재 조직 단위 범위로 저장합니다. */
+function scopeOf(ctx) {
+  return `genai:${ctx.currentOu()}`;
+}
+
+/** 꺼진 값으로 보이면 회색(status-off), 그 외에는 초록(status-on) */
+function statusClass(ctx, name, fallback) {
+  const current = String(ctx.setting(scopeOf(ctx), name, fallback) || '');
+  return /사용 안함|사용 중지|허용 안함|차단|해제|저장 안함|적용 안함|중지됨/.test(current) ? 'status-off' : 'status-on';
+}
+
+/** 클릭해서 바꿀 수 있는 값 (상태 색상 자동) */
+function val(ctx, name, value, options, section, withStatus = false) {
+  return ctx.editable({
+    scope: scopeOf(ctx),
+    name,
+    value,
+    options,
+    section,
+    className: withStatus ? statusClass(ctx, name, value) : '',
+  });
+}
+
+function featureList(ctx, rows, section) {
   return `<div class="feature-list">${rows
-    .map(([n, v]) => `<div><span>${ctx.esc(n)}</span><b class="status-on">${ctx.esc(v)}</b></div>`)
+    .map(([n, v]) => `<div><span>${ctx.esc(n)}</span>${val(ctx, `${section} · ${n}`, v, ON_OFF_OPTIONS, section, true)}</div>`)
     .join('')}</div>`;
 }
 
 function geminiAppView(ctx) {
   return `<div class="section-page wide admin-page genai-page">
     ${ctx.crumb('생성형 AI > Gemini 앱')}
-    <div class="genai-hero"><div class="gemini-logo"></div><div><h1>Gemini 앱</h1><p class="status-on">상태 모든 사용자에 사용</p></div></div>
+    <div class="genai-hero"><div class="gemini-logo"></div><div><h1>Gemini 앱</h1><p>상태 ${val(ctx, 'Gemini 앱 · 서비스 상태', '모든 사용자에 사용', SERVICE_STATE_OPTIONS, '서비스 상태', true)}</p></div></div>
     <div class="privacy-box"><strong>개인 정보 보호</strong><p>Gemini 앱의 채팅과 업로드된 파일은 사람 검토자에게 제공되지 않으며 생성형 AI 모델 개선에 사용되지 않습니다.</p></div>
-    <article class="settings-card" data-toast="서비스 상태"><header><h2>서비스 상태</h2>${ctx.icon('expand_more', 18)}</header><div class="card-kv"><strong>상태</strong><span class="status-on">모든 사용자에 사용</span></div>${ctx.appliedOu()}</article>
+    <article class="settings-card" data-toast="서비스 상태"><header><h2>서비스 상태</h2>${ctx.icon('expand_more', 18)}</header><div class="card-kv"><strong>상태</strong>${val(ctx, 'Gemini 앱 · 서비스 상태', '모든 사용자에 사용', SERVICE_STATE_OPTIONS, '서비스 상태', true)}</div>${ctx.appliedOu()}</article>
     <article class="settings-card" data-toast="공유"><header><div><h2>공유</h2><p>공유 설정</p></div>${ctx.icon('expand_more', 18)}</header>
       <div class="settings-card-grid">
-        <div><strong>대화 공유</strong><span>링크를 통해 대화를 공유하도록 허용</span></div>
-        <div><strong>Gem 공유</strong><span>사용 설정됨: &#39;사용자가 Gemini 앱에서 Gem을 공유하도록 허용&#39;</span></div>
+        <div><strong>대화 공유</strong>${val(ctx, 'Gemini 앱 · 대화 공유', '링크를 통해 대화를 공유하도록 허용', ['링크를 통해 대화를 공유하도록 허용', '조직 내부에서만 공유 허용', '공유 허용 안함'], '공유')}</div>
+        <div><strong>Gem 공유</strong>${val(ctx, 'Gemini 앱 · Gem 공유', "사용 설정됨: '사용자가 Gemini 앱에서 Gem을 공유하도록 허용'", ["사용 설정됨: '사용자가 Gemini 앱에서 Gem을 공유하도록 허용'", '조직 내부에서만 Gem 공유 허용', '사용 안함'], '공유')}</div>
       </div>
       ${ctx.appliedOu()}
     </article>
     <article class="settings-card" data-toast="데이터 보관"><header><div><h2>데이터 보관</h2><p>사용자의 Gemini 앱 활동 데이터를 보관하는 기간을 관리합니다.</p></div>${ctx.icon('expand_more', 18)}</header>
       <div class="settings-card-grid">
-        <div><strong>Gemini 앱 활동</strong><span>사용 설정됨: 사용자가 Gemini 앱 활동을 저장하도록 허용</span></div>
-        <div><strong>보관 기간</strong><span>18개월(기본값) 후 자동 삭제</span></div>
+        <div><strong>Gemini 앱 활동</strong>${val(ctx, 'Gemini 앱 · Gemini 앱 활동', '사용 설정됨: 사용자가 Gemini 앱 활동을 저장하도록 허용', ['사용 설정됨: 사용자가 Gemini 앱 활동을 저장하도록 허용', '활동을 저장하지 않음', '사용자가 결정하도록 허용'], '데이터 보관')}</div>
+        <div><strong>보관 기간</strong>${val(ctx, 'Gemini 앱 · 보관 기간', '18개월(기본값) 후 자동 삭제', ['3개월 후 자동 삭제', '18개월(기본값) 후 자동 삭제', '36개월 후 자동 삭제', '자동 삭제 안함'], '데이터 보관')}</div>
       </div>
       ${ctx.appliedOu()}
     </article>
     <article class="settings-card" data-toast="연령 기반 액세스 설정"><header><div><h2>연령 기반 액세스 설정</h2><p>만 18세 미만 사용자의 Gemini 앱 액세스 방식을 관리합니다.</p></div>${ctx.icon('expand_more', 18)}</header>
       <div class="settings-card-grid">
-        <div><strong>만 18세 미만 사용자</strong><span>사용 설정됨: 모든 연령의 사용자에게 Gemini 앱 사용 허용</span></div>
-        <div><strong>청소년 보호 정책</strong><span>만 18세 미만 사용자에게는 연령에 적합한 환경과 추가 안전 필터가 적용됩니다.</span></div>
+        <div><strong>만 18세 미만 사용자</strong>${val(ctx, 'Gemini 앱 · 만 18세 미만 사용자', '사용 설정됨: 모든 연령의 사용자에게 Gemini 앱 사용 허용', ['사용 설정됨: 모든 연령의 사용자에게 Gemini 앱 사용 허용', '만 18세 이상 사용자에게만 허용', '사용 안함'], '연령 기반 액세스 설정')}</div>
+        <div><strong>청소년 보호 정책</strong>${val(ctx, 'Gemini 앱 · 청소년 보호 정책', '만 18세 미만 사용자에게는 연령에 적합한 환경과 추가 안전 필터가 적용됩니다.', ['만 18세 미만 사용자에게는 연령에 적합한 환경과 추가 안전 필터가 적용됩니다.', '기본 안전 필터만 적용', '추가 안전 필터 사용 안함'], '연령 기반 액세스 설정')}</div>
       </div>
       ${ctx.appliedOu()}
     </article>
@@ -70,21 +96,26 @@ function geminiAppView(ctx) {
 }
 
 function geminiEnterpriseView(ctx) {
+  const dataAccessOptions = [
+    "사용 설정됨: 'Gemini Enterprise'가 Google Workspace 데이터에 액세스하도록 허용",
+    '읽기 전용으로 액세스 허용',
+    '사용 안함',
+  ];
   return `<div class="section-page wide admin-page genai-page">
     ${ctx.crumb('생성형 AI > Gemini Enterprise')}
-    <div class="genai-hero"><div class="gemini-logo"></div><div><h1>Gemini Enterprise</h1><p class="status-on">상태 모든 사용자에 사용</p></div></div>
+    <div class="genai-hero"><div class="gemini-logo"></div><div><h1>Gemini Enterprise</h1><p>상태 ${val(ctx, 'Gemini Enterprise · 서비스 상태', '모든 사용자에 사용', SERVICE_STATE_OPTIONS, '서비스 상태', true)}</p></div></div>
     <div class="privacy-box">
       <p><strong>추가 서비스</strong> — Gemini Enterprise는 엔터프라이즈급 데이터 보호가 적용되는 추가 서비스입니다.</p>
       <p><strong>서비스 약관</strong> — 에디션별 데이터 액세스 약관을 확인하세요.</p>
       <p><strong>개인 정보 보호 보장</strong> — Gemini Enterprise 채팅과 업로드된 파일은 사람 검토자에게 제공되지 않으며 생성형 AI 모델 개선에 사용되지 않습니다.</p>
     </div>
-    <article class="settings-card" data-toast="서비스 상태"><header><h2>서비스 상태</h2><span class="status-on">모든 사용자에 사용</span></header></article>
+    <article class="settings-card" data-toast="서비스 상태"><header><h2>서비스 상태</h2>${val(ctx, 'Gemini Enterprise · 서비스 상태', '모든 사용자에 사용', SERVICE_STATE_OPTIONS, '서비스 상태', true)}</header></article>
     <article class="settings-card" data-toast="Business"><header><div><h2>Business 에디션</h2><p>Gemini Enterprise - Business 에디션과 Google Workspace 간의 데이터 액세스 관리</p></div>${ctx.icon('expand_more', 18)}</header>
-      <div class="card-kv"><strong>Workspace 데이터 액세스</strong><span>사용 설정됨: &#39;Gemini Enterprise&#39;가 Google Workspace 데이터에 액세스하도록 허용</span></div>
+      <div class="card-kv"><strong>Workspace 데이터 액세스</strong>${val(ctx, 'Business 에디션 · Workspace 데이터 액세스', dataAccessOptions[0], dataAccessOptions, 'Business 에디션')}</div>
       ${ctx.appliedOu()}
     </article>
     <article class="settings-card" data-toast="Standard"><header><div><h2>Standard, Plus, Frontline 버전</h2><p>Gemini Enterprise - Standard, Plus, Frontline 버전과 Google Workspace 간의 데이터 액세스 관리</p></div>${ctx.icon('expand_more', 18)}</header>
-      <div class="card-kv"><strong>Workspace 데이터 액세스</strong><span>사용 설정됨: &#39;Gemini Enterprise&#39;가 Google Workspace 데이터에 액세스하도록 허용</span></div>
+      <div class="card-kv"><strong>Workspace 데이터 액세스</strong>${val(ctx, 'Standard, Plus, Frontline 버전 · Workspace 데이터 액세스', dataAccessOptions[0], dataAccessOptions, 'Standard, Plus, Frontline 버전')}</div>
       ${ctx.appliedOu()}
     </article>
   </div>`;
@@ -98,15 +129,15 @@ function geminiWorkspaceView(ctx) {
     <div class="genai-hero compact"><div class="gemini-logo"></div><strong>Workspace의 Gemini</strong></div>
     <div class="privacy-box"><p>Gemini는 Workspace 데이터를 모델 학습에 사용하지 않습니다. <button class="link-btn" data-toast="개인정보">개인 정보 보호를 위한 노력 및 제어에 관해 알아보기</button></p></div>
     <article class="settings-card"><header><div><h2>기능 액세스</h2><p>Workspace 서비스 기능에 대한 액세스 관리</p></div>${ctx.icon('expand_more', 18)}</header>
-      ${featureList(ctx, WORKSPACE_FEATURES)}
+      ${featureList(ctx, WORKSPACE_FEATURES, '기능 액세스')}
       ${ctx.appliedOu()}
     </article>
     <article class="settings-card"><header><div><h2>Workspace Intelligence 소스</h2><p>Workspace Intelligence가 Gemini에 컨텍스트를 제공하여 더 나은 AI 환경을 만듭니다. <button class="link-btn" data-toast="자세히">자세히 알아보기</button></p></div>${ctx.icon('expand_more', 18)}</header>
-      ${featureList(ctx, WORKSPACE_INTELLIGENCE)}
+      ${featureList(ctx, WORKSPACE_INTELLIGENCE, 'Workspace Intelligence 소스')}
       ${ctx.appliedOu()}
     </article>
     <article class="settings-card"><header><div><h2>클래스룸의 기능 액세스</h2><p>사용자가 클래스룸의 Gemini에 액세스할 수 있는지 선택합니다.</p></div>${ctx.icon('expand_more', 18)}</header>
-      <div class="feature-list"><div><span>클래스룸</span><b class="status-on">사용</b></div></div>
+      ${featureList(ctx, [['클래스룸', '사용']], '클래스룸의 기능 액세스')}
       ${ctx.appliedOu()}
     </article>
   </div>`;
@@ -115,15 +146,15 @@ function geminiWorkspaceView(ctx) {
 function geminiNotebookView(ctx) {
   return `<div class="section-page wide admin-page genai-page">
     ${ctx.crumb('생성형 AI > Gemini Notebook')}
-    <div class="genai-hero"><div class="gemini-logo"></div><div><h1>Gemini Notebook</h1><p class="status-on">상태 모든 사용자에 사용</p></div></div>
+    <div class="genai-hero"><div class="gemini-logo"></div><div><h1>Gemini Notebook</h1><p>상태 ${val(ctx, 'Gemini Notebook · 서비스 상태', '모든 사용자에 사용', SERVICE_STATE_OPTIONS, '서비스 상태', true)}</p></div></div>
     <div class="privacy-box"><p>NotebookLM / Gemini Notebook 자료는 조직 데이터 보호 정책에 따라 관리됩니다.</p></div>
-    <article class="settings-card" data-toast="서비스 상태"><header><h2>서비스 상태</h2><span class="status-on">모든 사용자에 사용</span></header>${ctx.appliedOu()}</article>
+    <article class="settings-card" data-toast="서비스 상태"><header><h2>서비스 상태</h2>${val(ctx, 'Gemini Notebook · 서비스 상태', '모든 사용자에 사용', SERVICE_STATE_OPTIONS, '서비스 상태', true)}</header>${ctx.appliedOu()}</article>
     <article class="settings-card"><header><div><h2>노트북 공유</h2><p>사용자가 노트북을 조직 내부와 공유하는 방법을 관리합니다.</p></div>${ctx.icon('expand_more', 18)}</header>
-      <div class="card-kv"><strong>내부 공유</strong><span>연습학교 사용자와 공유 허용</span></div>
+      <div class="card-kv"><strong>내부 공유</strong>${val(ctx, 'Gemini Notebook · 내부 공유', '연습학교 사용자와 공유 허용', ['연습학교 사용자와 공유 허용', '같은 조직 단위 내에서만 공유 허용', '공유 허용 안함'], '노트북 공유')}</div>
       ${ctx.appliedOu()}
     </article>
     <article class="settings-card"><header><div><h2>데이터 보관</h2><p>노트북 소스와 생성 콘텐츠의 보관 기간</p></div>${ctx.icon('expand_more', 18)}</header>
-      <div class="card-kv"><strong>보관</strong><span>Workspace 기본 보관 정책 따름</span></div>
+      <div class="card-kv"><strong>보관</strong>${val(ctx, 'Gemini Notebook · 보관', 'Workspace 기본 보관 정책 따름', ['Workspace 기본 보관 정책 따름', '6개월 후 자동 삭제', '18개월 후 자동 삭제', '자동 삭제 안함'], '데이터 보관')}</div>
     </article>
   </div>`;
 }
@@ -143,7 +174,7 @@ function geminiReportsView(ctx, activeLink) {
   return `<div class="section-page wide admin-page genai-page">
     ${ctx.crumb('생성형 AI > Gemini 보고서')}
     <div class="page-title-row"><div><h1>Gemini 보고서</h1><p>조직과 사용자 수준의 Gemini 사용량을 확인합니다.</p></div>
-      <div class="report-dropdown"><button class="outline-button" data-toast="기간">지난 28일 ${ctx.icon('expand_more', 14)}</button></div>
+      <div class="report-dropdown">${ctx.editable({ scope: scopeOf(ctx), name: 'Gemini 보고서 · 기간', value: '지난 28일', options: ['지난 7일', '지난 28일', '지난 90일', '지난 180일'], section: 'Gemini 보고서', className: 'outline-button' })}</div>
     </div>
     <div class="report-subnav">
       <button class="${isOrg ? 'active' : ''}" data-nav="ai::조직 수준 사용량">조직 수준 사용량</button>

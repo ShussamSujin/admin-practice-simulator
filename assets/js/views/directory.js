@@ -15,6 +15,16 @@ const DIRECTORY_SETTING_CARDS = [
   },
 ];
 
+/** name 조직이 ancestor 아래(또는 자기 자신)인지 */
+function isUnder(orgs, name, ancestor) {
+  let current = orgs.find((o) => o.name === name);
+  while (current && current.parent) {
+    if (current.parent === ancestor) return true;
+    current = orgs.find((o) => o.name === current.parent);
+  }
+  return false;
+}
+
 function lastSignIn(index) {
   return ['2026. 9. 11.', '2026. 9. 10.', '2026. 9. 8.', '한 번도 로그인하지 않음'][index % 4];
 }
@@ -49,10 +59,12 @@ export default {
                   <td><input type="checkbox"></td>
                   <td><span class="avatar-dot">${ctx.esc(u.lastName.slice(0, 1))}</span><b class="blue-text">${ctx.esc(u.lastName)}${ctx.esc(u.firstName)}</b></td>
                   <td>${ctx.esc(u.email)}</td>
-                  <td>${ctx.esc(u.status)}</td>
-                  <td>${ctx.esc(u.org)}</td>
+                  <td>${ctx.editable({ scope: 'users', name: `${u.email} · 상태`, value: u.status, section: '사용자',
+                    options: ['활성', '정지됨', '보관처리됨', '비밀번호 재설정 필요'] })}</td>
+                  <td>${ctx.editable({ scope: 'users', name: `${u.email} · 조직 단위`, value: u.org, section: '사용자',
+                    options: ctx.orgRows().map((o) => o.name) })}</td>
                   <td>${lastSignIn(i)}</td>
-                  <td><button class="delete-button" data-action="delete-user" data-id="${ctx.esc(u.id)}">삭제</button></td>
+                  <td class="col-actions"><button class="row-action" data-toast="사용자 정보 수정" title="수정">${ctx.icon('edit', 18)}</button><button class="row-action danger" data-action="delete-user" data-id="${ctx.esc(u.id)}" title="삭제">${ctx.icon('delete', 18)}</button></td>
                 </tr>`).join('')}</tbody>
               </table>
             </div>
@@ -86,7 +98,7 @@ export default {
               <td>${ctx.esc(g.email)}</td>
               <td>${g.memberCount ?? (g.members ? g.members.length : 0)}</td>
               <td>${ctx.esc(g.description || '—')}</td>
-              <td><button class="delete-button" data-action="delete-group" data-id="${ctx.esc(g.id)}">삭제</button></td>
+              <td class="col-actions"><button class="row-action" data-toast="그룹 설정" title="설정">${ctx.icon('settings', 18)}</button><button class="row-action danger" data-action="delete-group" data-id="${ctx.esc(g.id)}" title="삭제">${ctx.icon('delete', 18)}</button></td>
             </tr>`).join('')}</tbody>
           </table>
         </div>
@@ -125,31 +137,44 @@ export default {
   '조직 단위': {
     render(ctx) {
       const { state } = ctx;
-      const root = state.orgs.find((o) => !o.parent) || state.orgs[0];
-      const children = state.orgs.filter((o) => o.parent);
+      const collapsed = ctx.local('ouCollapsed', '').split('|').filter(Boolean);
+      const hidden = (row) => row.depth > 0 && collapsed.some((name) => isUnder(state.orgs, row.name, name));
+      const rows = ctx.orgRows().filter((row) => !hidden(row));
       return `<div class="section-page wide admin-page">
         ${ctx.crumb('디렉터리 > 조직 단위')}
         <div class="ou-toolbar">
-          <strong>조직 단위 관리 | 조직 단위 ${state.orgs.length} 표시</strong>
-          <button class="link-btn" data-modal="org">조직 단위 만들기</button>
+          <strong>조직 단위 관리 | 조직 단위 ${state.orgs.length}개 표시</strong>
+          <button class="link-btn" data-modal="org">${ctx.icon('add', 16)} 조직 단위 만들기</button>
         </div>
         <label class="ou-search">${ctx.icon('search', 18)}<input placeholder="조직 단위 검색"></label>
         <div class="ou-table-wrap">
-          <table class="admin-table">
-            <thead><tr><th>이름</th><th>설명</th><th></th></tr></thead>
+          <table class="admin-table ou-table">
+            <thead><tr><th>이름</th><th>설명</th><th class="col-actions"></th></tr></thead>
             <tbody>
-              <tr class="ou-root">
-                <td>${ctx.icon('expand_more', 16)} <b>${ctx.esc(root?.name || '연습학교')}</b></td>
-                <td>${ctx.esc(root?.description || '연습학교')}</td><td></td>
-              </tr>
-              ${children.map((o) => `<tr>
-                <td class="ou-child">${/학생|태블릿|크롬북/.test(o.name) ? ctx.icon('chevron_right', 14) : '<span class="ou-spacer"></span>'}${ctx.esc(o.name)}</td>
-                <td>${ctx.esc(o.description || '-')}</td>
-                <td><button class="delete-button" data-action="delete-org" data-id="${ctx.esc(o.id)}">삭제</button></td>
-              </tr>`).join('')}
+              ${rows.map((o) => {
+                const open = !collapsed.includes(o.name);
+                const toggle = collapsed.includes(o.name)
+                  ? collapsed.filter((n) => n !== o.name)
+                  : collapsed.concat(o.name);
+                return `<tr class="${o.depth === 0 ? 'ou-root' : ''}">
+                  <td>
+                    <span class="ou-indent" style="padding-left:${o.depth * 24}px"></span>
+                    ${o.hasChildren
+                      ? `<button class="ou-toggle" data-set="ouCollapsed::${ctx.esc(toggle.join('|'))}" aria-label="${open ? '접기' : '펼치기'}">${ctx.icon(open ? 'arrow_drop_down' : 'arrow_right', 18)}</button>`
+                      : '<span class="ou-toggle empty"></span>'}
+                    <span class="ou-name ${o.depth === 0 ? 'root' : ''}">${ctx.esc(o.name)}</span>
+                  </td>
+                  <td class="ou-desc">${ctx.esc(o.description || '-')}</td>
+                  <td class="col-actions">
+                    <button class="row-action" data-modal="org" title="하위 조직 단위 만들기">${ctx.icon('add', 18)}</button>
+                    <button class="row-action danger" data-action="delete-org" data-id="${ctx.esc(o.id)}" title="삭제">${ctx.icon('delete', 18)}</button>
+                  </td>
+                </tr>`;
+              }).join('')}
             </tbody>
           </table>
         </div>
+        <p class="page-desc" style="margin-top:14px">조직 단위를 클릭하면 해당 단위에만 정책을 적용할 수 있습니다. 기본 조직 단위는 연습용으로 보호되어 삭제되지 않습니다.</p>
       </div>`;
     },
   },
@@ -167,6 +192,47 @@ export default {
     },
   },
 
+  '건물 및 리소스/건물 관리': {
+    render(ctx) {
+      return ctx.adminListPage({
+        title: '건물 관리',
+        breadcrumb: '디렉터리 > 건물 및 리소스',
+        description: '학교 건물과 층 정보를 등록합니다.',
+        columns: ['건물 이름', '설명', '층', '주소'],
+        rows: [['본관', '교무실·교실', '1~4층', '서울특별시'], ['별관', '특별실', '1~2층', '서울특별시']],
+        actionLabel: '건물 추가',
+      });
+    },
+  },
+  '건물 및 리소스/리소스 관리': {
+    render(ctx) {
+      return ctx.adminListPage({
+        title: '리소스 관리',
+        breadcrumb: '디렉터리 > 건물 및 리소스',
+        description: '캘린더에서 예약할 수 있는 회의실과 공용 기기입니다.',
+        columns: ['리소스 이름', '유형', '건물 · 층', '수용 인원'],
+        rows: [
+          ['과학실', '회의실', '본관 · 2층', '30'],
+          ['도서관', '회의실', '본관 · 1층', '40'],
+          ['이동형 빔프로젝터', '기타 리소스', '별관 · 1층', '-'],
+        ],
+        actionLabel: '리소스 추가',
+      });
+    },
+  },
+  '건물 및 리소스/기능 관리': {
+    render(ctx) {
+      return ctx.adminListPage({
+        title: '기능 관리',
+        breadcrumb: '디렉터리 > 건물 및 리소스',
+        description: '회의실이 갖춘 기능(화상회의 장비 등)을 정의합니다.',
+        columns: ['기능 이름', '설명', '적용 리소스', '상태'],
+        rows: [['전자칠판', '터치 디스플레이', '과학실, 도서관', '사용'], ['화상회의', 'Meet 하드웨어', '도서관', '사용']],
+        actionLabel: '기능 추가',
+      });
+    },
+  },
+
   '디렉터리 설정': {
     render(ctx) {
       return `<div class="section-page wide admin-page">
@@ -174,10 +240,14 @@ export default {
         <div class="dir-settings-layout">
           <div class="dir-settings-hero"><div class="section-icon">${ctx.icon('group', 26)}</div><h1>디렉터리 설정</h1></div>
           <div class="settings-cards">
-            ${DIRECTORY_SETTING_CARDS.map((c) => `<article class="settings-card" data-toast="${ctx.esc(c.title)}">
+            ${DIRECTORY_SETTING_CARDS.map((c) => `<article class="settings-card">
               <header><h2>${ctx.esc(c.title)}</h2>${ctx.icon('expand_more', 18)}</header>
               <p>${ctx.esc(c.desc)}</p>
-              ${c.fields.length ? `<div class="settings-card-grid">${c.fields.map(([k, v]) => `<div><strong>${ctx.esc(k)}</strong><span>${ctx.esc(v)}</span></div>`).join('')}</div>` : ''}
+              ${c.fields.length ? `<div class="settings-card-grid">${c.fields.map(([k, v]) => `<div>
+                <strong>${ctx.esc(k)}</strong>
+                ${ctx.editable({ scope: `directory:${ctx.currentOu()}`, name: `${c.title} · ${k}`, value: v, section: c.title,
+                  options: [v, '사용 설정됨', '사용 안함', '조직 단위별로 설정'] })}
+              </div>`).join('')}</div>` : ''}
               ${c.footer ? ctx.appliedOu() : ''}
             </article>`).join('')}
           </div>

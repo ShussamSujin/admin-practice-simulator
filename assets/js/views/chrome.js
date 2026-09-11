@@ -2,6 +2,15 @@
 
 import { chromePoliciesByTab } from '../data/chrome-user-policies.js';
 import { chromeAppsExtensionSettingsCategories } from '../data/chrome-apps-extension-settings.js';
+import { chromeDevicePolicyCategories } from '../data/chrome-device-policies.js';
+import { chromeGuestSessionCategories } from '../data/chrome-guest-session-policies.js';
+
+/** 탭별 정책 카탈로그 — 기기 설정/관리 게스트 세션 설정은 실제 콘솔에서 옮겨온 카탈로그 사용 */
+const CATALOG_BY_TAB = {
+  '사용자 및 브라우저 설정': chromePoliciesByTab['사용자 및 브라우저 설정'],
+  '기기 설정': chromeDevicePolicyCategories,
+  '관리 게스트 세션 설정': chromeGuestSessionCategories,
+};
 
 /** 원본 app/page.tsx 의 SAMPLE_APPS 상수 (그대로 복사). */
 const SAMPLE_APPS = [
@@ -117,10 +126,21 @@ function renderApps(ctx) {
       const pinned = a.pinned === 'warn'
         ? `<span class="warn-icon">${ctx.icon('warning', 14)}</span>`
         : ctx.esc(a.pinned || '—');
-      return `<tr><td><b>${ctx.esc(a.name)}</b><small class="muted-id">${ctx.esc(a.id)}</small></td><td>${ctx.esc(a.policy)}</td><td>${pinned}</td></tr>`;
+      const scope = `chrome-apps:${ctx.currentOu()}`;
+      return `<tr>
+        <td><b>${ctx.esc(a.name)}</b><small class="muted-id">${ctx.esc(a.id)}</small></td>
+        <td>${ctx.editable({ scope, name: `${a.name} · 설치 정책`, value: a.policy, section: '앱 및 확장 프로그램',
+          options: ['설치 허용', '강제 설치', '설치 및 고정', '차단', '삭제'] })}</td>
+        <td>${a.pinned === 'warn' ? pinned : ctx.editable({ scope, name: `${a.name} · 고정 승인 버전`, value: a.pinned || '고정되지 않음', section: '앱 및 확장 프로그램',
+          options: ['고정되지 않음', '최신 버전으로 고정', '이전 버전 유지'] })}</td>
+      </tr>`;
     }).join('');
 
-    body = `<div class="apps-banner"><strong>Chrome 웹 스토어</strong><span>관리자가 차단하지 않은 모든 앱 설치 허용</span></div>
+    body = `<div class="apps-banner"><strong>Chrome 웹 스토어</strong>${ctx.editable({
+        scope: `chrome-apps:${ctx.currentOu()}`, name: 'Chrome 웹 스토어 · 설치 정책', section: '앱 및 확장 프로그램',
+        value: '관리자가 차단하지 않은 모든 앱 설치 허용',
+        options: ['관리자가 차단하지 않은 모든 앱 설치 허용', '허용 목록의 앱만 설치 허용', '허용 목록의 앱만 설치 허용(사용자가 확장 프로그램 요청 가능)', '모든 앱 차단'],
+      })}</div>
       <div class="filter-strip"><button data-toast="필터 검색 또는 추가">${ctx.icon('add', 17)} 필터 검색 또는 추가</button></div>
       <div class="table-wrap"><table class="admin-table">
         <thead><tr><th>이름</th><th>설치 정책</th><th>고정 승인 버전</th></tr></thead>
@@ -148,7 +168,7 @@ function renderApps(ctx) {
 function renderSettings(ctx) {
   const tab = ctx.local('tab', '사용자 및 브라우저 설정');
   const selectedOu = '연습학교';
-  const categories = chromePoliciesByTab[tab] || [];
+  const categories = CATALOG_BY_TAB[tab] || chromePoliciesByTab[tab] || [];
   const scope = SETTINGS_SCOPES[tab] || 'chrome-user';
   const policyCount = countPolicies(categories);
   const tabs = SETTINGS_TABS

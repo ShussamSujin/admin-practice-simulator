@@ -378,3 +378,68 @@ button{font-family:inherit;cursor:pointer}
   .settings-row{grid-template-columns:1fr 1fr;row-gap:4px}
   .settings-row .platforms,.settings-row.header b:nth-child(3),.settings-row.header b:nth-child(4),.settings-row>span:nth-child(3){display:none}
 }
+
+/* ---------- 3단계 사이드바 ---------- */
+.subitems .nav-branch>button{
+  width:calc(100% - 16px);min-height:36px;display:flex;align-items:center;gap:4px;
+  padding:7px 12px 7px 52px;border:0;border-radius:0 20px 20px 0;background:none;
+  color:#444746;text-align:left;font-size:14px;font-family:var(--g-text);
+}
+.subitems .nav-branch>button:hover{background:var(--g-hover)}
+.subitems .nav-branch>button .nav-chevron{width:18px;margin-left:-22px;margin-right:4px;color:#5f6368}
+.subitems .nav-branch>button .nav-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.subitems .nav-branch>button.active{background:var(--g-nav-active);color:var(--g-nav-active-ink);font-weight:500}
+/* 펼쳐진 상위 메뉴는 실제 콘솔처럼 파란 테두리 알약으로 */
+.subitems .nav-branch>button.has-children.expanded{
+  background:#fff;color:var(--g-blue);font-weight:500;
+  border:1px solid #a8c7fa;border-radius:20px;width:calc(100% - 20px);margin-left:4px;
+}
+.subitems .nav-branch>button.has-children.expanded .nav-chevron{color:var(--g-blue)}
+.subitems.nested{padding-left:0}
+.subitems.nested .nav-branch>button{padding-left:72px}
+.subitems.nested .nav-branch>button .nav-chevron{margin-left:-22px}
+.subitems.nested .subitems.nested .nav-branch>button{padding-left:92px}
+
+/* ---------- 조직 단위 표 ---------- */
+.ou-table td{padding:10px 16px}
+.ou-table td:first-child{display:flex;align-items:center;gap:2px}
+.ou-toggle{width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:50%;background:none;color:#5f6368;flex:0 0 auto}
+.ou-toggle:hover{background:var(--g-hover)}
+.ou-toggle.empty{visibility:hidden}
+.ou-indent{display:inline-block;flex:0 0 auto}
+.ou-name{font-size:14px;color:#1f1f1f}
+.ou-name.root{font-weight:500}
+.ou-desc{color:var(--g-on-surface-var)}
+.ou-toolbar strong{font-size:15px;font-weight:500}
+.ou-toolbar .link-btn{display:inline-flex;align-items:center;gap:4px}
+
+/* ---------- 표 행 작업 버튼(빨간 삭제 버튼 대체) ---------- */
+.col-actions{width:96px;text-align:right;white-space:nowrap}
+.row-action{
+  width:32px;height:32px;display:inline-grid;place-items:center;border:0;border-radius:50%;
+  background:none;color:#5f6368;opacity:0;transition:opacity .12s,background .12s;
+}
+tr:hover .row-action,.row-action:focus-visible{opacity:1}
+.row-action:hover{background:var(--g-hover)}
+.row-action.danger:hover{background:#fce8e6;color:#c5221f}
+
+/* 현재 섹션이 펼쳐져 있을 때 상위 행은 채우지 않음(실제 콘솔과 동일) */
+.nav-item.active-parent{background:none;color:#444746;font-weight:500}
+.nav-item.active-parent:hover{background:var(--g-hover)}
+.nav-item.active-parent .msi{color:#444746}
+
+/* ---------- 어디서나 클릭해 바꾸는 값 ---------- */
+.editable{
+  display:inline-flex;align-items:center;gap:4px;max-width:100%;
+  padding:3px 8px;margin:-3px 0;border:1px solid transparent;border-radius:8px;
+  background:none;color:inherit;font:inherit;text-align:left;line-height:1.45;cursor:pointer;
+}
+.editable>span{min-width:0;overflow-wrap:anywhere}
+.editable .msi{opacity:0;color:var(--g-blue);transition:opacity .12s}
+.editable:hover{background:#e8f0fe;border-color:#d2e3fc;color:#0842a0}
+.editable:hover .msi{opacity:1}
+.editable.changed{color:#0b57d0;font-weight:500}
+.editable.changed::after{content:'변경됨';margin-left:6px;padding:1px 6px;border-radius:999px;background:#e6f4ea;color:#137333;font-size:10px;font-weight:700}
+.editable.status-on{color:#188038;font-weight:500}
+.editable.status-off{color:#5f6368}
+td .editable,.settings-card-grid .editable{margin-left:-8px}

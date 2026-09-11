@@ -6,6 +6,24 @@ const UPDATES = [
   { title: 'Doubled cell limits in Google Sheets now generally available', date: '03:21 오전' },
 ];
 
+// 디스커버 카드 일러스트 (Google 자산이 아닌 자체 제작 도형)
+const DISCOVER_ART = `<svg viewBox="0 0 320 170" role="img" aria-label="Workspace 소개 일러스트">
+  <rect x="30" y="34" width="96" height="102" rx="10" fill="#fff"/>
+  <rect x="44" y="50" width="68" height="8" rx="4" fill="#c2e7ff"/>
+  <rect x="44" y="66" width="52" height="8" rx="4" fill="#e8eaed"/>
+  <rect x="44" y="82" width="60" height="8" rx="4" fill="#e8eaed"/>
+  <circle cx="60" cy="112" r="12" fill="#fbbc04"/>
+  <rect x="80" y="104" width="32" height="16" rx="8" fill="#34a853" opacity=".85"/>
+  <rect x="146" y="20" width="144" height="60" rx="12" fill="#fff"/>
+  <circle cx="172" cy="50" r="14" fill="#ea4335" opacity=".9"/>
+  <rect x="196" y="40" width="76" height="8" rx="4" fill="#e8eaed"/>
+  <rect x="196" y="56" width="52" height="8" rx="4" fill="#e8eaed"/>
+  <rect x="146" y="92" width="144" height="44" rx="12" fill="#fff"/>
+  <circle cx="172" cy="114" r="14" fill="#4285f4" opacity=".9"/>
+  <rect x="196" y="106" width="84" height="8" rx="4" fill="#e8eaed"/>
+  <rect x="196" y="120" width="44" height="8" rx="4" fill="#e8eaed"/>
+</svg>`;
+
 function card(ctx, { id, title, sub, seeAll, body = '', tall, nav }) {
   const navAttr = nav === false ? '' : `data-nav="${id}::"`;
   return `<article class="g-card ${tall ? 'tall' : ''} ${nav === false ? '' : 'clickable'}" ${navAttr}>
@@ -54,7 +72,7 @@ export default {
 
     const discoverCard = card(ctx, {
       id: 'apps', title: '디스커버', sub: 'Google을 최대한 활용해 보세요', seeAll: true, tall: true, nav: false,
-      body: `<div class="discover-art"></div>
+      body: `<div class="discover-art">${DISCOVER_ART}</div>
         <h3 style="margin:0 0 8px;font-size:16px;font-weight:500">Google Workspace 최대한 활용하기</h3>
         <p class="body-text">Google Workspace의 가장 유용한 기능을 자세히 알아보고 모든 것이 제대로 설정되어 있는지 확인하세요.</p>
         <button class="text-link" data-toast="Google Workspace 살펴보기">Google Workspace 살펴보기</button>`,

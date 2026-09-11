@@ -199,13 +199,10 @@ button{font-family:inherit;cursor:pointer}
 .update-list button:hover{background:rgba(255,255,255,.6)}
 .update-list time{color:var(--g-muted);font-size:12px;white-space:nowrap;padding-top:2px}
 .discover-art{
-  height:190px;margin:4px 0 18px;border-radius:12px;
-  background:
-    radial-gradient(circle at 22% 68%,#fbbc04 0 26px,transparent 27px),
-    radial-gradient(circle at 74% 34%,#34a853 0 34px,transparent 35px),
-    radial-gradient(circle at 52% 62%,#ea4335 0 44px,transparent 45px),
-    linear-gradient(135deg,#e8f0fe,#d3e3fd 60%,#c2e7ff);
+  margin:4px 0 18px;border-radius:12px;overflow:hidden;
+  background:linear-gradient(135deg,#e8f0fe,#d3e3fd 60%,#c2e7ff);
 }
+.discover-art svg{display:block;width:100%;height:auto}
 .g-card .body-text{margin:0 0 16px;color:var(--g-on-surface-var);font-size:14px;line-height:1.55}
 .g-card .text-link{border:0;background:none;padding:0;color:var(--g-blue);font-size:14px;font-weight:500}
 .g-card .text-link:hover{text-decoration:underline}
@@ -320,7 +317,7 @@ button{font-family:inherit;cursor:pointer}
   .mode-switch button{padding:0 10px}
 }
 @media(max-width:860px){
-  .workspace,.workspace.rail-collapsed{grid-template-columns:0 minmax(0,1fr) 0}
+  .workspace,.workspace.rail-collapsed,.workspace.rail-open,.workspace.sidebar-collapsed{display:block}
   .tools-rail{display:none}
   .sidebar{position:fixed;top:var(--topbar-h);left:0;width:280px;transform:translateX(-100%);box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:30}
   .workspace:not(.sidebar-collapsed) .sidebar{transform:translateX(0)}
@@ -361,3 +358,23 @@ button{font-family:inherit;cursor:pointer}
 .policy-body legend{font-size:13px;font-weight:500;color:#444746;padding:0 4px}
 .member-picker input[type=checkbox]{width:18px;height:18px;min-height:0;accent-color:var(--g-blue)}
 .ou-picker-tabs::-webkit-scrollbar{height:0}
+
+/* 좁은 화면 보정 */
+.practice-strip{flex-wrap:wrap}
+.practice-strip>span{flex:1 1 240px;min-width:0}
+.practice-strip button{white-space:nowrap}
+.home-head{flex-wrap:wrap}
+@media(max-width:860px){
+  .topbar{gap:0}
+  .searchbox{height:42px;margin-left:4px;padding:0 12px;gap:8px}
+  .mode-switch{padding:2px;margin-left:4px}
+  .mode-switch button{height:26px;padding:0 8px;font-size:11px}
+  .icon-button{width:40px;height:40px}
+  .profile-button{margin-left:4px;width:32px;height:32px}
+  .g-card{padding:18px}
+  .g-card.tall{min-height:0}
+  .directory-layout,.apps-layout,.chrome-settings-layout,.dir-settings-layout{grid-template-columns:1fr}
+  .page-title-row{flex-direction:column;align-items:stretch;gap:12px}
+  .settings-row{grid-template-columns:1fr 1fr;row-gap:4px}
+  .settings-row .platforms,.settings-row.header b:nth-child(3),.settings-row.header b:nth-child(4),.settings-row>span:nth-child(3){display:none}
+}

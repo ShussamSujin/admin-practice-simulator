@@ -42,7 +42,7 @@ const state = {
   section: 'home',
   link: '',
   query: '',
-  sidebarOpen: true,
+  sidebarOpen: typeof window !== 'undefined' ? window.innerWidth >= 860 : true,
   railOpen: typeof window !== 'undefined' && window.innerWidth >= 1400,
   orgs: SEED.orgs.slice(),
   users: SEED.users.slice(),

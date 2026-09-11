@@ -122,6 +122,7 @@ export default {
         <span><b>연습용 시뮬레이터입니다.</b> 눌러 보는 모든 설정은 이 브라우저에만 저장되고 실제 조직에는 반영되지 않습니다.
         ${full ? '' : '센스쿨 학교 관리자에게 위임되지 않은 메뉴는 표시되지 않습니다.'}</span>
         <button data-mode="${full ? 'sen' : 'full'}">${full ? '센스쿨 권한으로 보기' : '최고관리자 권한과 비교하기'}</button>
+        <button data-modal="reset" title="내 연습 내용만 처음 상태로 되돌립니다">연습 데이터 초기화</button>
       </div>
       <div class="card-columns">
         ${columns.map((col) => `<div class="card-col">${col.join('')}</div>`).join('')}

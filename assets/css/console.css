@@ -16,8 +16,8 @@
   --g-nav-active:#d3e3fd;
   --g-nav-active-ink:#041e49;
   --g-hover:rgba(31,31,31,.06);
-  --g-sans:'Google Sans','Product Sans',Roboto,'Noto Sans KR',Arial,sans-serif;
-  --g-text:Roboto,'Noto Sans KR',Arial,sans-serif;
+  --g-sans:'Google Sans','Product Sans',Roboto,'Noto Sans KR','Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',sans-serif;
+  --g-text:Roboto,'Noto Sans KR','Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',sans-serif;
   --topbar-h:64px;
 }
 
@@ -443,3 +443,25 @@ tr:hover .row-action,.row-action:focus-visible{opacity:1}
 .editable.status-on{color:#188038;font-weight:500}
 .editable.status-off{color:#5f6368}
 td .editable,.settings-card-grid .editable{margin-left:-8px}
+
+/* ---------- 계정 팝오버 / 초기화 ---------- */
+.popover-backdrop{position:fixed;inset:0;z-index:100;background:transparent}
+.account-popover{
+  position:absolute;top:60px;right:16px;width:min(360px,calc(100vw - 32px));
+  padding:20px;border-radius:20px;background:#fff;
+  box-shadow:0 4px 8px rgba(60,64,67,.15),0 8px 24px rgba(60,64,67,.24);
+  animation:modal-in .14s ease-out;
+}
+.account-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.account-head>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.account-head strong{font-size:15px;font-weight:500}
+.account-head small{color:var(--g-on-surface-var);font-size:13px;overflow-wrap:anywhere}
+.account-head em{margin-top:4px;padding:2px 8px;border-radius:999px;background:#e8f0fe;color:#0842a0;font-size:11px;font-style:normal;align-self:flex-start}
+.account-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 0;border-top:1px solid var(--g-divider);border-bottom:1px solid var(--g-divider)}
+.account-stats span{display:flex;flex-direction:column;gap:2px;color:var(--g-muted);font-size:11px;text-align:center}
+.account-stats b{font-family:var(--g-sans);font-size:20px;font-weight:400;color:#1f1f1f}
+.account-note{display:flex;gap:8px;margin:14px 0 16px;color:var(--g-on-surface-var);font-size:12px;line-height:1.6}
+.account-note .msi{color:var(--g-blue);flex:0 0 auto}
+.account-actions{display:flex;flex-direction:column;gap:8px}
+.account-actions .outline-button{width:100%;justify-content:center}
+@media(max-width:520px){.account-popover{top:auto;bottom:16px;right:16px;left:16px;width:auto}}

@@ -442,6 +442,43 @@ function renderModal() {
         </fieldset>
         <div class="form-actions"><button type="button" data-close-modal>취소</button><button type="submit">그룹 만들기</button></div>
       </form>`);
+  } else if (kind === 'account') {
+    const profile = PROFILES[state.mode];
+    const changed = Object.values(policies).reduce((sum, group) => sum + Object.keys(group || {}).length, 0);
+    root.innerHTML = `<div class="popover-backdrop" data-backdrop>
+      <section class="account-popover" role="dialog" aria-label="계정">
+        <div class="account-head">
+          <span class="account-avatar ${state.mode === 'full' ? 'full' : 'sen'}">${esc(profile.short)}</span>
+          <div>
+            <strong>${esc(profile.name)}</strong>
+            <small>${esc(profile.email)}</small>
+            <em>${esc(profile.role)}</em>
+          </div>
+        </div>
+        <div class="account-stats">
+          <span><b>${state.orgs.length}</b>조직 단위</span>
+          <span><b>${state.users.length}</b>사용자</span>
+          <span><b>${changed}</b>변경한 설정</span>
+        </div>
+        <p class="account-note">${icon('info', 16)}<span>연습 내용은 <b>이 브라우저에만</b> 저장됩니다. 다른 선생님 화면이나 실제 조직에는 영향이 없습니다.</span></p>
+        <div class="account-actions">
+          <button class="outline-button" data-modal="reset">${icon('restart_alt', 18)} 연습 데이터 초기화</button>
+          <button class="outline-button" data-action="signout">${icon('logout', 18)} 계정 선택으로</button>
+        </div>
+      </section>
+    </div>`;
+  } else if (kind === 'reset') {
+    root.innerHTML = modalShell('연습 데이터를 초기화할까요?', '이 브라우저에 저장된 연습 내용만 지웁니다.', `
+      <div class="practice-form">
+        <p style="margin:0;color:#444746;font-size:14px;line-height:1.6">
+          직접 만든 조직 단위·사용자·그룹과 바꾼 설정값이 모두 처음 상태로 돌아갑니다.<br>
+          다른 사람의 화면이나 실제 관리 콘솔에는 아무 영향이 없습니다.
+        </p>
+        <div class="form-actions">
+          <button type="button" data-close-modal>취소</button>
+          <button type="button" class="filled" data-action="reset-confirm">초기화</button>
+        </div>
+      </div>`);
   } else if (kind === 'policy') {
     const { scope, name, current, options: opts = [] } = options;
     root.innerHTML = modalShell(options.displayName || name, `${options.sectionLabel || '설정'} · ${currentOu()}에 적용`, `
@@ -562,6 +599,26 @@ document.addEventListener('click', (event) => {
 });
 
 function handleAction(action, target) {
+  if (action === 'reset-confirm') {
+    policies = {};
+    state.orgs = SEED.orgs.map((o) => ({ ...o }));
+    state.users = SEED.users.map((u) => ({ ...u }));
+    state.groups = SEED.groups.map((g) => ({ ...g }));
+    state.local = {};
+    try { localStorage.removeItem(POLICY_KEY); } catch { /* noop */ }
+    save();
+    closeModal();
+    navigate('home', '');
+    toast('연습 데이터를 처음 상태로 되돌렸습니다.');
+    return;
+  }
+  if (action === 'signout') {
+    state.signedIn = false;
+    save();
+    closeModal();
+    render();
+    return;
+  }
   if (action === 'delete-user') {
     const id = target.dataset.id;
     if (id === 'admin-locked') { toast('초기 관리자 계정은 보호됩니다.'); return; }
@@ -704,8 +761,8 @@ function render() {
 $('#menu-toggle').addEventListener('click', () => { state.sidebarOpen = !state.sidebarOpen; renderShell(); });
 $('#rail-toggle').addEventListener('click', () => { state.railOpen = !state.railOpen; renderShell(); });
 $('#profile-button').addEventListener('click', () => {
-  const profile = PROFILES[state.mode];
-  toast(`${profile.name} · ${profile.email} — 권한: ${profile.role}`);
+  if ($('#modal-root').querySelector('.account-popover')) { closeModal(); return; }
+  openModal('account');
 });
 $('#search-input').addEventListener('input', (event) => {
   state.query = event.target.value;

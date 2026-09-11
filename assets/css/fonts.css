@@ -1,0 +1,19 @@
+/* 저장소에 포함된 폰트만 사용합니다 — 학교망에서 fonts.googleapis.com이 막혀 있어도 화면이 깨지지 않습니다.
+   한글은 시스템 글꼴(맑은 고딕 / Apple SD Gothic Neo / 설치돼 있으면 Noto Sans KR)을 사용합니다. */
+
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('../fonts/material-symbols-outlined.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('../fonts/roboto-variable.woff2') format('woff2');
+}

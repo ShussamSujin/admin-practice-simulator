@@ -166,15 +166,15 @@ export default {
                   </td>
                   <td class="ou-desc">${ctx.esc(o.description || '-')}</td>
                   <td class="col-actions">
-                    <button class="row-action" data-modal="org" title="하위 조직 단위 만들기">${ctx.icon('add', 18)}</button>
-                    <button class="row-action danger" data-action="delete-org" data-id="${ctx.esc(o.id)}" title="삭제">${ctx.icon('delete', 18)}</button>
+                    <button class="row-action" data-modal="org" data-parent="${ctx.esc(o.name)}" title="'${ctx.esc(o.name)}' 아래에 조직 단위 만들기">${ctx.icon('add', 18)}</button>
+                    ${o.depth === 0 ? '' : `<button class="row-action danger" data-action="delete-org" data-id="${ctx.esc(o.id)}" title="삭제">${ctx.icon('delete', 18)}</button>`}
                   </td>
                 </tr>`;
               }).join('')}
             </tbody>
           </table>
         </div>
-        <p class="page-desc" style="margin-top:14px">조직 단위를 클릭하면 해당 단위에만 정책을 적용할 수 있습니다. 기본 조직 단위는 연습용으로 보호되어 삭제되지 않습니다.</p>
+        <p class="page-desc" style="margin-top:14px">행에 마우스를 올리면 <b>+</b>(하위 조직 단위 만들기)와 <b>삭제</b> 버튼이 나타납니다. 하위 조직이 있는 조직 단위를 삭제하면 하위까지 함께 삭제됩니다. 최상위 조직 단위는 실제 콘솔과 마찬가지로 삭제할 수 없습니다.</p>
       </div>`;
     },
   },

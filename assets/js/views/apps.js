@@ -1,5 +1,6 @@
 // 담당 범위: "앱(Apps)" 섹션 — 개요 / Google Workspace 서비스별 설정 / 추가 Google 서비스 / 웹 및 모바일 앱 / Marketplace 앱 / LDAP
 // (원본 app/page.tsx 85-115, 650-943 줄의 AppsSectionView 계열 컴포넌트 포팅)
+// 모든 상태/설정 값은 ctx.editable 로 감싸 클릭해서 바꿀 수 있게 했다.
 
 const WORKSPACE_NESTED = [
   '서비스 상태','검토','AppSheet','Calendar','Chrome 동기화','Classroom','Drive 및 Docs','Gmail',
@@ -35,6 +36,55 @@ const MARKETPLACE_APPS = [
 
 const OU_CHILDREN = ['1.관리자','2.교원','3.학생','4.태블릿기기','5.크롬북(삭제금지)'];
 
+/* ── 값 편집 헬퍼 ─────────────────────────────────────────────── */
+
+const SERVICE_STATUS_OPTIONS = ['모든 사용자에게 사용', '모든 사용자에게 사용 중지', '일부 조직 단위에만 사용'];
+const MARKETPLACE_STATUS_OPTIONS = ['배포됨', '허용', '차단', '설치 요청 대기'];
+const MARKETPLACE_USER_OPTIONS = ['전체', '교원', '학생', '교원·학생', '배포 안함'];
+const REVIEW_OPTIONS = ['확인 필요', '검토 완료', '조치 필요 없음'];
+const OU_OPTIONS = ['연습학교'].concat(OU_CHILDREN);
+
+// 값은 조직 단위별로 따로 저장한다.
+function scopeOf(ctx) {
+  const ou = typeof ctx.currentOu === 'function' ? ctx.currentOu() : currentOu(ctx);
+  return `apps:${ou}`;
+}
+
+// 값 형태를 보고 그럴듯한 선택지를 만든다.
+function autoOptions(value) {
+  const v = String(value == null ? '' : value);
+  if (v === '사용') return ['사용', '사용 안함', '사용자가 결정하도록 허용'];
+  if (v === '사용 안함') return ['사용 안함', '사용', '사용자가 결정하도록 허용'];
+  if (v === '허용') return ['허용', '허용 안함', '일부 조직 단위만 허용'];
+  if (v === '허용 안함') return ['허용 안함', '허용', '일부 조직 단위만 허용'];
+  return [v, '사용', '사용 안함', 'Google 기본값 사용'].filter((x, i, a) => x && a.indexOf(x) === i);
+}
+
+// 값 색상(초록/회색) 자동 판정
+function autoClass(value) {
+  const v = String(value == null ? '' : value);
+  if (/사용 안함|사용 중지|허용 안함|차단|사용하지 않음|제한됨|배포 안함/.test(v)) return 'status-off';
+  if (/사용|허용|유효|인증됨|강화됨|필요 없음|배포됨/.test(v)) return 'status-on';
+  return '';
+}
+
+function current(ctx, name, fallback) {
+  return typeof ctx.setting === 'function' ? ctx.setting(scopeOf(ctx), name, fallback) : fallback;
+}
+
+/** 클릭해서 바꿀 수 있는 값 버튼 */
+function ed(ctx, name, value, options, className) {
+  const cls = className === undefined ? autoClass(current(ctx, name, value)) : className;
+  return ctx.editable({
+    scope: scopeOf(ctx),
+    name,
+    value,
+    options: options && options.length ? options : autoOptions(value),
+    section: String(name).split(' · ')[0],
+    className: cls,
+  });
+}
+
 /* ── 공용 헬퍼 ───────────────────────────────────────────────── */
 
 // 원본 AppliedOu(). ctx.appliedOu() 가 있으면 그것을 쓰고, 없으면 동일 마크업을 직접 낸다.
@@ -58,25 +108,32 @@ function accordion(ctx, { title, desc, open, body }) {
     + `</details>`;
 }
 
-function statusKv(ctx) {
-  return `<div class="card-kv"><strong>상태</strong><span class="status-on">모든 사용자에게 사용</span></div>`;
-}
-
-function kv(ctx, label, value) {
-  return `<div class="card-kv"><strong>${ctx.esc(label)}</strong><span>${ctx.esc(value)}</span></div>`;
-}
-
-// [[이름, 값], ...] → .settings-card-grid
-function grid(ctx, pairs) {
-  return `<div class="settings-card-grid">`
-    + pairs.map(([n, v]) => `<div><strong>${ctx.esc(n)}</strong><span>${ctx.esc(v)}</span></div>`).join('')
+// 서비스 상태 카드 본문 (앱 이름으로 구분된 편집 가능한 값)
+function statusKv(ctx, app) {
+  return `<div class="card-kv"><strong>상태</strong>`
+    + ed(ctx, `${app} · 서비스 상태`, '모든 사용자에게 사용', SERVICE_STATUS_OPTIONS)
     + `</div>`;
 }
 
-function hero(ctx, { iconName, iconClass, title }) {
+function kv(ctx, label, value, name, options, className) {
+  return `<div class="card-kv"><strong>${ctx.esc(label)}</strong>`
+    + ed(ctx, name, value, options, className)
+    + `</div>`;
+}
+
+// [[이름, 값, 선택지?], ...] → .settings-card-grid
+function grid(ctx, pairs, prefix) {
+  return `<div class="settings-card-grid">`
+    + pairs.map(([n, v, options]) =>
+        `<div><strong>${ctx.esc(n)}</strong>${ed(ctx, `${prefix} · ${n}`, v, options)}</div>`).join('')
+    + `</div>`;
+}
+
+function hero(ctx, { iconName, iconClass, title, app }) {
   return `<div class="ws-app-hero">`
     + `<div class="ws-app-icon${iconClass ? ' ' + iconClass : ''}">${ctx.icon(iconName, 28)}</div>`
-    + `<div><h1>${ctx.esc(title)}</h1><p class="status-on">상태 모든 사용자에게 사용</p></div>`
+    + `<div><h1>${ctx.esc(title)}</h1>`
+    + `<p class="status-on">상태 ${ed(ctx, `${app} · 서비스 상태`, '모든 사용자에게 사용', SERVICE_STATUS_OPTIONS)}</p></div>`
     + `</div>`;
 }
 
@@ -114,20 +171,28 @@ function overview(ctx) {
       + `<article class="dashboard-card" data-nav="apps::Google Workspace">`
         + `<header><div><h2>Google Workspace</h2><p>${WORKSPACE_NESTED.length}개 서비스</p></div>`
         + `<button data-nav="apps::Calendar">Calendar</button></header>`
+        + `<div class="card-kv"><strong>Google Workspace 서비스 상태</strong>`
+        + ed(ctx, '개요 · Google Workspace 상태', '모든 사용자에게 사용', SERVICE_STATUS_OPTIONS) + `</div>`
         + `<div class="card-links">`
         + wsLinks.map(n => `<button data-nav="apps::${ctx.esc(n)}">${ctx.esc(n)}${ctx.icon('chevron_right', 15)}</button>`).join('')
         + `</div>`
       + `</article>`
       + `<article class="dashboard-card" data-nav="apps::추가 Google 서비스">`
         + `<header><div><h2>추가 Google 서비스</h2><p>AI Studio, Colab 등</p></div></header>`
+        + `<div class="card-kv"><strong>기본 상태</strong>`
+        + ed(ctx, '개요 · 추가 Google 서비스 기본 상태', '사용', ['사용', '사용 안함', '개별 서비스별로 설정']) + `</div>`
         + `<div class="card-links"><button data-nav="apps::추가 Google 서비스">서비스 관리${ctx.icon('chevron_right', 15)}</button></div>`
       + `</article>`
       + `<article class="dashboard-card" data-nav="apps::Google Workspace Marketplace 앱">`
         + `<header><div><h2>Marketplace 앱</h2><p>${MARKETPLACE_APPS.length}개 앱</p></div></header>`
+        + `<div class="card-kv"><strong>사용자 설치</strong>`
+        + ed(ctx, '개요 · Marketplace 사용자 설치', '허용된 앱만 설치 허용', ['허용된 앱만 설치 허용', '모든 앱 설치 허용', '설치 허용 안함']) + `</div>`
         + `<div class="card-links"><button data-nav="apps::Google Workspace Marketplace 앱">앱 목록${ctx.icon('chevron_right', 15)}</button></div>`
       + `</article>`
       + `<article class="dashboard-card" data-nav="apps::웹 및 모바일 앱">`
         + `<header><div><h2>웹 및 모바일 앱</h2><p>SAML · OIDC</p></div></header>`
+        + `<div class="card-kv"><strong>자동 로그인</strong>`
+        + ed(ctx, '개요 · 웹 및 모바일 앱 자동 로그인', '사용', ['사용', '사용 안함', '앱별로 설정']) + `</div>`
         + `<div class="card-links"><button data-toast="앱 추가">앱 추가${ctx.icon('chevron_right', 15)}</button></div>`
       + `</article>`
     + `</div>`
@@ -141,13 +206,14 @@ function emptyApp(ctx, appName) {
   return `<div class="section-page wide admin-page apps-section-page workspace-app-page">`
     + crumb(ctx, `앱 > Google Workspace > ${title}`)
     + `<div class="ws-app-hero"><div class="ws-app-icon">${ctx.icon('web_asset', 28)}</div>`
-      + `<div><h1>${ctx.esc(title)}</h1><p class="status-on">상태 모든 사용자에게 사용</p></div></div>`
+      + `<div><h1>${ctx.esc(title)}</h1>`
+      + `<p class="status-on">상태 ${ed(ctx, `${appName} · 서비스 상태`, '모든 사용자에게 사용', SERVICE_STATUS_OPTIONS)}</p></div></div>`
     + `<div class="info-banner soft">${ctx.icon('info', 18)}`
       + `<div><strong>추가 설정은 각 서비스 관리 콘솔에서 관리할 수 있습니다.</strong>`
       + `<span>Gemini 등 일부 기능은 서비스별 Admin Console에서 구성합니다.</span></div>`
       + `<button class="link-btn" data-toast="서비스 상태 알아보기">서비스 상태 알아보기</button></div>`
-    + `<article class="settings-card" data-toast="서비스 상태"><header><h2>서비스 상태</h2>${ctx.icon('expand_more', 18)}</header>`
-      + statusKv(ctx) + appliedOu(ctx) + `</article>`
+    + `<article class="settings-card"><header><h2>서비스 상태</h2>${ctx.icon('expand_more', 18)}</header>`
+      + statusKv(ctx, appName) + appliedOu(ctx) + `</article>`
     + `<div class="ws-empty-state">${ctx.icon('build', 40)}<strong>표시할 추가 설정 없음</strong><p>이 서비스에는 다른 설정이 없습니다.</p></div>`
     + `</div>`;
 }
@@ -155,43 +221,44 @@ function emptyApp(ctx, appName) {
 /* ── Calendar (원본 CalendarSettingsView) ────────────────────── */
 
 function calendar(ctx) {
+  const P = 'Calendar';
   return workspacePage(ctx, {
     crumbText: '앱 > Google Workspace > Calendar 설정',
-    heroOpts: { iconName: 'calendar_month', iconClass: 'cal', title: 'Calendar 설정' },
+    heroOpts: { iconName: 'calendar_month', iconClass: 'cal', title: 'Calendar 설정', app: P },
     cards:
-      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx) })
+      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx, P) })
       + accordion(ctx, {
         title: '공유 설정', desc: '사용자가 캘린더를 공유하는 방법을 관리합니다.',
         body: grid(ctx, [
-          ['외부 공유 옵션', '무료/예약됨 정보만 공유 가능'],
-          ['내부 공유 옵션', '모든 정보 공유 가능'],
-          ['기본 외부 공유', '공유하지 않음'],
-          ['외부 초대 경고', '사용'],
-        ]),
+          ['외부 공유 옵션', '무료/예약됨 정보만 공유 가능', ['정보 공유 안함', '무료/예약됨 정보만 공유 가능', '모든 정보 공유 가능', '모든 정보 공유 및 관리 가능']],
+          ['내부 공유 옵션', '모든 정보 공유 가능', ['정보 공유 안함', '무료/예약됨 정보만 공유 가능', '모든 정보 공유 가능', '모든 정보 공유 및 관리 가능']],
+          ['기본 외부 공유', '공유하지 않음', ['공유하지 않음', '무료/예약됨 정보만', '모든 정보']],
+          ['외부 초대 경고', '사용', ['사용', '사용 안함']],
+        ], `${P} · 공유 설정`),
       })
       + accordion(ctx, {
         title: '일반 설정', desc: '캘린더 기본 동작',
         body: grid(ctx, [
-          ['캘린더 생성', '허용'],
-          ['예약 일정', '사용'],
-          ['근무 시간', '사용자가 설정하도록 허용'],
-          ['자동 수락', '사용 안함'],
-        ]),
+          ['캘린더 생성', '허용', ['허용', '허용 안함', '관리자만 허용']],
+          ['예약 일정', '사용', ['사용', '사용 안함']],
+          ['근무 시간', '사용자가 설정하도록 허용', ['사용자가 설정하도록 허용', '관리자가 지정', '사용 안함']],
+          ['자동 수락', '사용 안함', ['사용 안함', '사용', '충돌이 없을 때만 수락']],
+        ], `${P} · 일반 설정`),
       })
       + accordion(ctx, {
         title: '리소스 관리', desc: '회의실 및 리소스 예약',
         body: grid(ctx, [
-          ['리소스 예약', '허용'],
-          ['리소스 자동 수락', '사용'],
-          ['건물 계층', '연습학교 본관'],
-        ]),
+          ['리소스 예약', '허용', ['허용', '허용 안함', '교원만 허용']],
+          ['리소스 자동 수락', '사용', ['사용', '사용 안함', '충돌이 없을 때만 수락']],
+          ['건물 계층', '연습학교 본관', ['연습학교 본관', '연습학교 별관', '연습학교 체육관', '설정 안함']],
+        ], `${P} · 리소스 관리`),
       })
       + accordion(ctx, {
         title: '고급 설정',
         body: grid(ctx, [
-          ['Calendar Interop', '사용 안함'],
-          ['스마트 기능', '사용'],
-        ]),
+          ['Calendar Interop', '사용 안함', ['사용 안함', '사용', 'Exchange 전용']],
+          ['스마트 기능', '사용', ['사용', '사용 안함', '사용자가 결정하도록 허용']],
+        ], `${P} · 고급 설정`),
       }),
   });
 }
@@ -199,29 +266,37 @@ function calendar(ctx) {
 /* ── Workspace Studio (원본 WorkspaceStudioSettingsView) ─────── */
 
 function workspaceStudio(ctx) {
+  const P = 'Workspace Studio';
   const steps = [['트리거', '사용'], ['조건', '사용'], ['작업', '사용'], ['변수', '사용'], ['커넥터', '사용']];
   const features = [
-    ['단계 및 기능', '사용'], ['공유', '조직 내 공유 허용'], ['웹훅', '사용'],
-    ['실행 기록', '보관 30일'], ['관리자 승인', '필요 없음'],
+    ['단계 및 기능', '사용', ['사용', '사용 안함']],
+    ['공유', '조직 내 공유 허용', ['조직 내 공유 허용', '외부 공유 허용', '공유 안함']],
+    ['웹훅', '사용', ['사용', '사용 안함', '승인된 도메인만 허용']],
+    ['실행 기록', '보관 30일', ['보관 7일', '보관 30일', '보관 90일', '보관 안함']],
+    ['관리자 승인', '필요 없음', ['필요 없음', '모든 플로우에 필요', '외부 커넥터에만 필요']],
   ];
   return workspacePage(ctx, {
     crumbText: '앱 > Google Workspace > Workspace Studio 설정',
-    heroOpts: { iconName: 'auto_awesome', iconClass: 'studio', title: 'Workspace Studio 설정' },
+    heroOpts: { iconName: 'auto_awesome', iconClass: 'studio', title: 'Workspace Studio 설정', app: P },
     cards:
-      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx) })
+      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx, P) })
       + accordion(ctx, {
         title: '단계 및 기능', desc: '플로우 구성 요소 액세스', open: true,
         body: `<div class="feature-grid">`
-          + steps.map(([n, v]) => `<div><span>${ctx.esc(n)}</span><b class="status-on">${ctx.esc(v)}</b></div>`).join('')
+          + steps.map(([n, v]) =>
+              `<div><span>${ctx.esc(n)}</span>`
+              + ed(ctx, `${P} · 단계 및 기능 · ${n}`, v, ['사용', '사용 안함', '교원만 사용'])
+              + `</div>`).join('')
           + `</div>`,
       })
-      + accordion(ctx, { title: '공유 및 웹훅', body: grid(ctx, features) }),
+      + accordion(ctx, { title: '공유 및 웹훅', body: grid(ctx, features, `${P} · 공유 및 웹훅`) }),
   });
 }
 
 /* ── Gmail (원본 GmailSettingsView) ──────────────────────────── */
 
 function gmail(ctx) {
+  const P = 'Gmail';
   const sections = [
     ['서비스 상태', '모든 사용자에게 사용'],
     ['사용자 설정', '테마, 서명, 스마트 작성, 기밀 모드'],
@@ -232,23 +307,31 @@ function gmail(ctx) {
     ['보안', '첨부파일, 피싱, 스푸핑 보호'],
   ];
   const bodyFor = (title) => {
-    if (title === '서비스 상태') return statusKv(ctx);
+    if (title === '서비스 상태') return statusKv(ctx, P);
     if (title === '사용자 설정') return grid(ctx, [
-      ['스마트 작성', '사용'], ['기밀 모드', '사용'],
-      ['자동 읽음 확인', '사용 안함'], ['외부 수신 경고', '사용'],
-    ]);
-    if (title === '호스트') return kv(ctx, '호스트 이름', 'mail.school.sen.ms.kr');
-    if (title === '기본 라우팅') return kv(ctx, '규칙', '기본 경로 · 연습학교');
-    if (title === '이메일 인증(DKIM)') return kv(ctx, 'DKIM', '인증됨 · school.sen.ms.kr');
-    if (title === '스팸 격리 저장소 관리') return kv(ctx, '격리함', '관리자 검토 · 14일 보관');
+      ['스마트 작성', '사용', ['사용', '사용 안함', '사용자가 결정하도록 허용']],
+      ['기밀 모드', '사용', ['사용', '사용 안함', '수신만 허용']],
+      ['자동 읽음 확인', '사용 안함', ['사용 안함', '사용', '조직 내에서만 사용']],
+      ['외부 수신 경고', '사용', ['사용', '사용 안함']],
+    ], `${P} · 사용자 설정`);
+    if (title === '호스트') return kv(ctx, '호스트 이름', 'mail.school.sen.ms.kr',
+      `${P} · 호스트 이름`, ['mail.school.sen.ms.kr', 'smtp.school.sen.ms.kr', 'relay.school.sen.ms.kr', '설정 안함']);
+    if (title === '기본 라우팅') return kv(ctx, '규칙', '기본 경로 · 연습학교',
+      `${P} · 기본 라우팅 규칙`, ['기본 경로 · 연습학교', '수신 전용 경로', '발신 전용 경로', '규칙 없음']);
+    if (title === '이메일 인증(DKIM)') return kv(ctx, 'DKIM', '인증됨 · school.sen.ms.kr',
+      `${P} · DKIM`, ['인증됨 · school.sen.ms.kr', '인증 대기 중', '사용 안함']);
+    if (title === '스팸 격리 저장소 관리') return kv(ctx, '격리함', '관리자 검토 · 14일 보관',
+      `${P} · 스팸 격리 저장소`, ['관리자 검토 · 14일 보관', '관리자 검토 · 30일 보관', '사용자 검토 허용', '사용 안함']);
     if (title === '보안') return grid(ctx, [
-      ['첨부파일 보안', '강화됨'], ['스푸핑 보호', '사용'], ['향상된 피싱 및 멀웨어 보호', '사용'],
-    ]);
+      ['첨부파일 보안', '강화됨', ['강화됨', '기본', '사용 안함']],
+      ['스푸핑 보호', '사용', ['사용', '사용 안함', '경고만 표시']],
+      ['향상된 피싱 및 멀웨어 보호', '사용', ['사용', '사용 안함']],
+    ], `${P} · 보안`);
     return '';
   };
   return workspacePage(ctx, {
     crumbText: '앱 > Google Workspace > Gmail 설정',
-    heroOpts: { iconName: 'mail', iconClass: 'gmail', title: 'Gmail 설정' },
+    heroOpts: { iconName: 'mail', iconClass: 'gmail', title: 'Gmail 설정', app: P },
     cards: sections.map(([title, desc], i) =>
       accordion(ctx, { title, desc, open: i === 0, body: bodyFor(title) })).join(''),
   });
@@ -257,36 +340,39 @@ function gmail(ctx) {
 /* ── Google Meet (원본 MeetSettingsView) ─────────────────────── */
 
 function meet(ctx) {
+  const P = 'Google Meet';
   const rows = [
-    ['반응', '사용', false],
-    ['녹화', '사용 [P]', true],
-    ['스트림', '조직 내 사용 / YouTube 사용 안함 [P]', true],
-    ['시각 효과', '배경 사용 / 특수 효과 사용 안함', false],
-    ['자동 스크립트', '사용 안함', false],
-    ['추가 부가기능', '사용 안함', false],
-    ['오디오', '전화 참가 사용 / 유료 통화 사용 안함', false],
-    ['기본 동영상 녹화 화질', '최고 [P]', true],
-    ['기본 동영상 화질', '자동', false],
-    ['통합', '사용', false],
-    ['통화 생성', '사용', false],
-    ['타일 페어링', '사용', false],
-    ['클라이언트 로그 업로드', '사용', false],
-    ['자동 녹화', '사용 안함 [P]', true],
-    ['게이트웨이 상호 운용성', '사용 안함', false],
-    ['회의 스크립트', '사용 [P]', true],
-    ['참석 보고', '사용 [P]', true],
+    ['반응', '사용', false, ['사용', '사용 안함']],
+    ['녹화', '사용 [P]', true, ['사용 [P]', '사용 안함 [P]', '교원만 사용 [P]']],
+    ['스트림', '조직 내 사용 / YouTube 사용 안함 [P]', true, ['조직 내 사용 / YouTube 사용 안함 [P]', '조직 내 사용 / YouTube 사용 [P]', '사용 안함 [P]']],
+    ['시각 효과', '배경 사용 / 특수 효과 사용 안함', false, ['배경 사용 / 특수 효과 사용 안함', '배경 사용 / 특수 효과 사용', '모두 사용 안함']],
+    ['자동 스크립트', '사용 안함', false, ['사용 안함', '사용', '주최자가 결정하도록 허용']],
+    ['추가 부가기능', '사용 안함', false, ['사용 안함', '사용', '승인된 부가기능만 사용']],
+    ['오디오', '전화 참가 사용 / 유료 통화 사용 안함', false, ['전화 참가 사용 / 유료 통화 사용 안함', '전화 참가 사용 / 유료 통화 사용', '전화 참가 사용 안함']],
+    ['기본 동영상 녹화 화질', '최고 [P]', true, ['최고 [P]', '높음 [P]', '보통 [P]', '자동 [P]']],
+    ['기본 동영상 화질', '자동', false, ['자동', '고화질', '표준', '저화질']],
+    ['통합', '사용', false, ['사용', '사용 안함']],
+    ['통화 생성', '사용', false, ['사용', '사용 안함', '교원만 사용']],
+    ['타일 페어링', '사용', false, ['사용', '사용 안함']],
+    ['클라이언트 로그 업로드', '사용', false, ['사용', '사용 안함']],
+    ['자동 녹화', '사용 안함 [P]', true, ['사용 안함 [P]', '사용 [P]', '주최자가 결정하도록 허용 [P]']],
+    ['게이트웨이 상호 운용성', '사용 안함', false, ['사용 안함', '사용']],
+    ['회의 스크립트', '사용 [P]', true, ['사용 [P]', '사용 안함 [P]', '주최자가 결정하도록 허용 [P]']],
+    ['참석 보고', '사용 [P]', true, ['사용 [P]', '사용 안함 [P]', '참가자 5명 이상일 때만 [P]']],
   ];
-  const featureRows = rows.map(([n, v, p]) => {
-    const cls = v.includes('사용 안함') && !v.includes('조직') ? 'status-off' : 'status-on';
-    const label = v.includes('사용 안함') && !v.includes('/') ? 'OFF' : 'ON';
+  const featureRows = rows.map(([n, v, p, options]) => {
+    const name = `${P} · ${n}`;
+    const cur = current(ctx, name, v);
+    const cls = cur.includes('사용 안함') && !cur.includes('조직') ? 'status-off' : 'status-on';
+    const label = cur.includes('사용 안함') && !cur.includes('/') ? 'OFF' : 'ON';
     return `<div class="meet-feature"><div><strong>${ctx.esc(n)}${p ? '<em class="badge-p">P</em>' : ''}</strong>`
-      + `<span>${ctx.esc(v)}</span></div><b class="${cls}">${label}</b></div>`;
+      + ed(ctx, name, v, options, cls) + `</div><b class="${cls}">${label}</b></div>`;
   }).join('');
   return workspacePage(ctx, {
     crumbText: '앱 > Google Workspace > Google Meet 설정',
-    heroOpts: { iconName: 'videocam', iconClass: 'meet', title: 'Google Meet 설정' },
+    heroOpts: { iconName: 'videocam', iconClass: 'meet', title: 'Google Meet 설정', app: P },
     cards:
-      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx) })
+      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx, P) })
       + accordion(ctx, {
         title: 'Meet 동영상 설정', desc: '회의 기능 및 품질 옵션', open: true,
         body: `<div class="meet-feature-grid">${featureRows}</div>`,
@@ -297,20 +383,25 @@ function meet(ctx) {
 /* ── Google Workspace LTI™ (원본 LtiSettingsView) ────────────── */
 
 function lti(ctx) {
+  const P = 'Google Workspace LTI™';
   return workspacePage(ctx, {
     crumbText: '앱 > Google Workspace > Google Workspace LTI™ 설정',
-    heroOpts: { iconName: 'web_asset', title: 'Google Workspace LTI™ 설정' },
+    heroOpts: { iconName: 'web_asset', title: 'Google Workspace LTI™ 설정', app: P },
     cards:
-      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx) })
+      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx, P) })
       + accordion(ctx, {
         title: '수업 설정', desc: 'LTI memberships', open: true,
         body: grid(ctx, [
-          ['멤버십 동기화', '사용'], ['역할 매핑', '교사 · 학생'], ['수업 생성', '교원 OU 허용'],
-        ]),
+          ['멤버십 동기화', '사용', ['사용', '사용 안함', '수동 동기화']],
+          ['역할 매핑', '교사 · 학생', ['교사 · 학생', '교사만 매핑', '매핑 안함']],
+          ['수업 생성', '교원 OU 허용', ['교원 OU 허용', '모든 사용자 허용', '허용 안함']],
+        ], `${P} · 수업 설정`),
       })
       + accordion(ctx, {
         title: '원본성 보고서',
-        body: `<div class="card-kv"><strong>교내 일치</strong><span class="status-off">사용 중지</span></div>`,
+        body: `<div class="card-kv"><strong>교내 일치</strong>`
+          + ed(ctx, `${P} · 원본성 보고서 · 교내 일치`, '사용 중지', ['사용 중지', '사용', '교원만 사용'])
+          + `</div>`,
       }),
   });
 }
@@ -318,44 +409,63 @@ function lti(ctx) {
 /* ── Classroom (원본 ClassroomSettingsView) ──────────────────── */
 
 function classroom(ctx) {
+  const P = 'Classroom';
   return workspacePage(ctx, {
     crumbText: '앱 > Google Workspace > Classroom 설정',
-    heroOpts: { iconName: 'web_asset', title: 'Classroom 설정' },
+    heroOpts: { iconName: 'web_asset', title: 'Classroom 설정', app: P },
     cards:
-      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx) })
+      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx, P) })
       + accordion(ctx, {
         title: '일반 설정',
         body: grid(ctx, [
-          ['수업 만들기', '교원만 허용'], ['수업 등록', '도메인 사용자'], ['가디언 요약', '사용'],
-        ]),
+          ['수업 만들기', '교원만 허용', ['교원만 허용', '모든 사용자 허용', '확인된 교사만 허용', '허용 안함']],
+          ['수업 등록', '도메인 사용자', ['도메인 사용자', '도메인 및 허용된 외부 도메인', '초대받은 사용자만']],
+          ['가디언 요약', '사용', ['사용', '사용 안함']],
+        ], `${P} · 일반 설정`),
       })
       + accordion(ctx, {
         title: '수업 참여 설정',
-        body: grid(ctx, [['외부 교사 초대', '허용 안함'], ['수업 코드', '사용']]),
+        body: grid(ctx, [
+          ['외부 교사 초대', '허용 안함', ['허용 안함', '허용', '허용 목록 도메인만 허용']],
+          ['수업 코드', '사용', ['사용', '사용 안함', '교원이 결정하도록 허용']],
+        ], `${P} · 수업 참여 설정`),
       })
-      + accordion(ctx, { title: '원본성 보고서', body: kv(ctx, '교내 일치', '사용 안함') }),
+      + accordion(ctx, {
+        title: '원본성 보고서',
+        body: kv(ctx, '교내 일치', '사용 안함', `${P} · 원본성 보고서 · 교내 일치`, ['사용 안함', '사용', '교원만 사용']),
+      }),
   });
 }
 
 /* ── Drive 및 Docs (원본 DriveDocsSettingsView) ──────────────── */
 
 function driveDocs(ctx) {
+  const P = 'Drive 및 Docs';
   return workspacePage(ctx, {
     crumbText: '앱 > Google Workspace > Drive 및 Docs 설정',
-    heroOpts: { iconName: 'cloud', title: 'Drive 및 Docs 설정' },
+    heroOpts: { iconName: 'cloud', title: 'Drive 및 Docs 설정', app: P },
     cards:
-      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx) })
+      accordion(ctx, { title: '서비스 상태', open: true, body: statusKv(ctx, P) })
       + accordion(ctx, {
         title: '공유 설정',
         body: grid(ctx, [
-          ['외부 공유', '허용(경고 표시)'], ['링크 공유 기본값', '제한됨 · 연습학교'], ['방문 사용자 액세스', '사용 안함'],
-        ]),
+          ['외부 공유', '허용(경고 표시)', ['허용(경고 표시)', '허용(경고 없음)', '허용 목록 도메인만 허용', '사용 안함']],
+          ['링크 공유 기본값', '제한됨 · 연습학교', ['제한됨 · 연습학교', '연습학교 사용자(링크 보유)', '링크가 있는 모든 사용자']],
+          ['방문 사용자 액세스', '사용 안함', ['사용 안함', '사용']],
+        ], `${P} · 공유 설정`),
       })
       + accordion(ctx, {
         title: '기능 및 애플리케이션',
-        body: grid(ctx, [['오프라인', '사용'], ['Drive for desktop', '사용'], ['스마트 칩', '사용']]),
+        body: grid(ctx, [
+          ['오프라인', '사용', ['사용', '사용 안함']],
+          ['Drive for desktop', '사용', ['사용', '사용 안함', '승인된 기기만 허용']],
+          ['스마트 칩', '사용', ['사용', '사용 안함']],
+        ], `${P} · 기능 및 애플리케이션`),
       })
-      + accordion(ctx, { title: '데이터 액세스', body: kv(ctx, 'Drive SDK', '신뢰할 수 있는 앱만') }),
+      + accordion(ctx, {
+        title: '데이터 액세스',
+        body: kv(ctx, 'Drive SDK', '신뢰할 수 있는 앱만', `${P} · Drive SDK`, ['신뢰할 수 있는 앱만', '모든 앱 허용', '사용 안함']),
+      }),
   });
 }
 
@@ -370,7 +480,10 @@ function serviceStatus(ctx) {
     + `<div class="data-panel flat"><table class="admin-table">`
       + `<thead><tr><th>서비스</th><th>상태</th><th>적용</th></tr></thead>`
       + `<tbody>`
-      + rows.map(n => `<tr><td><b class="blue-text">${ctx.esc(n)}</b></td><td class="status-on">모든 사용자에게 사용</td><td>연습학교</td></tr>`).join('')
+      + rows.map(n =>
+          `<tr><td><b class="blue-text">${ctx.esc(n)}</b></td>`
+          + `<td>${ed(ctx, `${n} · 서비스 상태`, '모든 사용자에게 사용', SERVICE_STATUS_OPTIONS)}</td>`
+          + `<td>${ed(ctx, `서비스 상태 적용 · ${n}`, '연습학교', OU_OPTIONS, '')}</td></tr>`).join('')
       + `</tbody></table></div>`
     + `</div>`;
 }
@@ -378,6 +491,7 @@ function serviceStatus(ctx) {
 /* ── 검토 (원본 WorkspaceReviewView) ─────────────────────────── */
 
 function review(ctx) {
+  const rows = [['AI Studio', '추가 Google 서비스'], ['Colab', '추가 Google 서비스']];
   return `<div class="section-page wide admin-page apps-section-page">`
     + crumb(ctx, '앱 > Google Workspace > 검토')
     + `<h1>검토</h1>`
@@ -388,8 +502,9 @@ function review(ctx) {
     + `<div class="data-panel flat"><table class="admin-table">`
       + `<thead><tr><th>항목</th><th>유형</th><th>상태</th></tr></thead>`
       + `<tbody>`
-      + `<tr><td><b>AI Studio</b></td><td>추가 Google 서비스</td><td><em class="badge-need">확인 필요</em></td></tr>`
-      + `<tr><td><b>Colab</b></td><td>추가 Google 서비스</td><td><em class="badge-need">확인 필요</em></td></tr>`
+      + rows.map(([n, t]) =>
+          `<tr><td><b>${ctx.esc(n)}</b></td><td>${ctx.esc(t)}</td>`
+          + `<td>${ed(ctx, `검토 · ${n}`, '확인 필요', REVIEW_OPTIONS, '')}</td></tr>`).join('')
       + `</tbody></table></div>`
     + `</div>`;
 }
@@ -397,7 +512,7 @@ function review(ctx) {
 /* ── 추가 Google 서비스 (원본 AdditionalGoogleServicesView) ──── */
 
 function additionalServices(ctx) {
-  const selectedOu = currentOu(ctx);
+  const selectedOu = typeof ctx.currentOu === 'function' ? ctx.currentOu() : currentOu(ctx);
   return `<div class="section-page wide admin-page apps-section-page">`
     + crumb(ctx, '앱 > 추가 Google 서비스')
     + `<div class="page-title-row"><div><h1>추가 Google 서비스</h1><p>연습학교 OU별로 추가 Google 서비스 사용 여부를 관리합니다.</p></div>`
@@ -412,8 +527,8 @@ function additionalServices(ctx) {
           + `<tbody>`
           + EXTRA_GOOGLE_SERVICES.map(s =>
               `<tr><td><b class="blue-text">${ctx.esc(s.name)}</b></td>`
-              + `<td class="${s.status === '사용' ? 'status-on' : 'status-off'}">${ctx.esc(s.status)}</td>`
-              + `<td>${s.needConfirm ? '<em class="badge-need">확인 필요</em>' : '—'}</td>`
+              + `<td>${ed(ctx, `추가 Google 서비스 · ${s.name}`, s.status, ['사용', '사용 안함', '일부 조직 단위에만 사용'])}</td>`
+              + `<td>${ed(ctx, `추가 Google 서비스 검토 · ${s.name}`, s.needConfirm ? '확인 필요' : '—', REVIEW_OPTIONS.concat(['—']), '')}</td>`
               + `<td><button class="link-btn" data-toast="${ctx.esc(s.name)}">세부정보</button></td></tr>`).join('')
           + `</tbody></table></div>`
       + `</section>`
@@ -424,7 +539,7 @@ function additionalServices(ctx) {
 /* ── Google Workspace Marketplace 앱 (원본 MarketplaceAppsView) ─ */
 
 function marketplaceApps(ctx) {
-  const selectedOu = currentOu(ctx);
+  const selectedOu = typeof ctx.currentOu === 'function' ? ctx.currentOu() : currentOu(ctx);
   return `<div class="section-page wide admin-page apps-section-page">`
     + crumb(ctx, '앱 > Google Workspace Marketplace 앱 > 앱 목록')
     + `<div class="page-title-row"><div><h1>Google Workspace Marketplace 앱</h1><p>Marketplace 앱 배포와 허용 목록을 관리합니다.</p></div>`
@@ -442,7 +557,9 @@ function marketplaceApps(ctx) {
           + `<tbody>`
           + MARKETPLACE_APPS.map(a =>
               `<tr><td><b class="blue-text">${ctx.esc(a.name)}</b></td>`
-              + `<td>${ctx.esc(a.publisher)}</td><td>${ctx.esc(a.status)}</td><td>${ctx.esc(a.users)}</td>`
+              + `<td>${ctx.esc(a.publisher)}</td>`
+              + `<td>${ed(ctx, `Marketplace 앱 · ${a.name} · 배포`, a.status, MARKETPLACE_STATUS_OPTIONS)}</td>`
+              + `<td>${ed(ctx, `Marketplace 앱 · ${a.name} · 사용자`, a.users, MARKETPLACE_USER_OPTIONS, '')}</td>`
               + `<td><button class="link-btn" data-toast="${ctx.esc(a.name)} 배포">배포</button> `
               + `<button class="link-btn" data-toast="${ctx.esc(a.name)} 세부정보">세부정보</button></td></tr>`).join('')
           + `</tbody></table></div>`
@@ -466,7 +583,11 @@ function webMobileApps(ctx) {
     + `<div class="data-panel flat"><table class="admin-table">`
       + `<thead><tr><th>앱</th><th>유형</th><th>상태</th><th>사용자</th></tr></thead>`
       + `<tbody>`
-      + rows.map(r => `<tr><td><b class="blue-text">${ctx.esc(r[0])}</b></td><td>${ctx.esc(r[1])}</td><td>${ctx.esc(r[2])}</td><td>${ctx.esc(r[3])}</td></tr>`).join('')
+      + rows.map(r =>
+          `<tr><td><b class="blue-text">${ctx.esc(r[0])}</b></td>`
+          + `<td>${ed(ctx, `웹 및 모바일 앱 · ${r[0]} · 유형`, r[1], ['SAML', 'OIDC', '비밀번호 저장(SSO 아님)'], '')}</td>`
+          + `<td>${ed(ctx, `웹 및 모바일 앱 · ${r[0]} · 상태`, r[2], ['사용', '사용 안함', '일부 조직 단위에만 사용'])}</td>`
+          + `<td>${ed(ctx, `웹 및 모바일 앱 · ${r[0]} · 사용자`, r[3], ['전체', '교원', '학생', '교원·학생', '—'], '')}</td></tr>`).join('')
       + `</tbody></table></div>`
     + `</div>`;
 }
@@ -480,7 +601,10 @@ function ldap(ctx) {
       + `<button class="primary-button" data-toast="LDAP 클라이언트 추가">클라이언트 추가</button></div>`
     + `<div class="data-panel flat"><table class="admin-table">`
       + `<thead><tr><th>클라이언트</th><th>상태</th><th>인증서</th><th>적용</th></tr></thead>`
-      + `<tbody><tr><td><b class="blue-text">연습학교 LDAP</b></td><td class="status-on">사용</td><td>유효</td><td>연습학교</td></tr></tbody>`
+      + `<tbody><tr><td><b class="blue-text">연습학교 LDAP</b></td>`
+        + `<td>${ed(ctx, 'LDAP · 연습학교 LDAP · 상태', '사용', ['사용', '사용 안함', '일시 중지'])}</td>`
+        + `<td>${ed(ctx, 'LDAP · 연습학교 LDAP · 인증서', '유효', ['유효', '만료 예정', '만료됨', '업로드 필요'], '')}</td>`
+        + `<td>${ed(ctx, 'LDAP · 연습학교 LDAP · 적용', '연습학교', OU_OPTIONS, '')}</td></tr></tbody>`
       + `</table></div>`
     + `</div>`;
 }

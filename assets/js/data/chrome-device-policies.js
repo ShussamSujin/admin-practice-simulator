@@ -10,7 +10,7 @@ export const chromeDevicePolicyCategories = [
       { name: "파워워시", value: "파워워시가 트리거되도록 허용", inheritance: "로컬 단위로 적용됨", options: ["파워워시가 트리거되도록 허용", "파워워시가 트리거되도록 허용 안함", "Google 기본값 사용"] },
       { name: "인증 액세스", value: "콘텐츠 보호 사용", inheritance: "Google 기본값", options: ["콘텐츠 보호 사용", "콘텐츠 보호 사용 안함", "Google 기본값 사용"] },
       { name: "자체 검사 모드", value: "하위 설정 3개", inheritance: "Google 기본값", options: ["하위 설정 3개", "하위 설정 구성", "Google 기본값 사용"] },
-      { name: "사용 중지된 기기 반환 안내", value: "[연습용 안내 문구 — 학교 실제 주소·전화번호 대신 연습학교 문구 사용]", inheritance: "로컬 단위로 적용됨", options: ["[연습용 안내 문구 — 학교 실제 주소·전화번호 대신 연습학교 문구 사용]", "맞춤 안내 문구 사용 중지", "Google 기본값 사용"] },
+      { name: "사용 중지된 기기 반환 안내", value: "연습학교(school.sen.ms.kr)에서 관리하는 연습용 기기입니다. 개인 용도로 사용할 수 없으며, 연습이 끝나면 학교 관리자 안내에 따라 반납하세요.", inheritance: "로컬 단위로 적용됨", options: ["연습학교(school.sen.ms.kr)에서 관리하는 연습용 기기입니다. 개인 용도로 사용할 수 없으며, 연습이 끝나면 학교 관리자 안내에 따라 반납하세요.", "맞춤 안내 문구 사용 중지", "Google 기본값 사용"] },
       { name: "통합된 FIDO 2단계 인증", value: "사용자가 결정하도록 허용", inheritance: "Google 기본값", options: ["사용자가 결정하도록 허용", "항상 사용 설정", "항상 사용 중지", "Google 기본값 사용"] },
     ],
   },

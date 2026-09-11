@@ -416,7 +416,7 @@ function renderModal() {
     root.innerHTML = modalShell('조직 단위 만들기', '조직 구조를 구성합니다.', `
       <form class="practice-form" data-form="org">
         <label><span>조직 단위 이름 *</span><input name="name" required autofocus></label>
-        <label><span>상위 조직 단위</span><select name="parent">${state.orgs.map((o) => `<option ${o.name === '연습학교' ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></label>
+        <label><span>상위 조직 단위</span><select name="parent">${state.orgs.map((o) => `<option ${o.name === (options.parent || '연습학교') ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></label>
         <label><span>설명</span><textarea name="description"></textarea></label>
         <div class="form-actions"><button type="button" data-close-modal>취소</button><button type="submit">조직 단위 만들기</button></div>
       </form>`);
@@ -444,7 +444,7 @@ function renderModal() {
       </form>`);
   } else if (kind === 'policy') {
     const { scope, name, current, options: opts = [] } = options;
-    root.innerHTML = modalShell(name, `${options.sectionLabel || '설정'} · 이 조직 단위에 적용`, `
+    root.innerHTML = modalShell(options.displayName || name, `${options.sectionLabel || '설정'} · ${currentOu()}에 적용`, `
       <form class="policy-body" data-form="policy" data-scope="${esc(scope)}" data-name="${esc(name)}">
         <fieldset>
           <legend>구성</legend>
@@ -498,7 +498,10 @@ document.addEventListener('click', (event) => {
     navigate(sectionId, link);
     return;
   }
-  if (target.hasAttribute('data-modal')) { openModal(target.getAttribute('data-modal')); return; }
+  if (target.hasAttribute('data-modal')) {
+    openModal(target.getAttribute('data-modal'), { parent: target.dataset.parent });
+    return;
+  }
   if (target.hasAttribute('data-edit')) {
     event.preventDefault();
     let payload;
@@ -507,6 +510,7 @@ document.addEventListener('click', (event) => {
     openModal('policy', {
       scope: payload.s,
       name: payload.n,
+      displayName: payload.n.includes(' · ') ? payload.n.split(' · ').slice(-1)[0] : payload.n,
       sectionLabel: payload.t,
       current: setting(payload.s, payload.n, payload.d),
       options,
@@ -570,9 +574,25 @@ function handleAction(action, target) {
     save(); toast('그룹을 삭제했습니다.'); renderView();
   } else if (action === 'delete-org') {
     const id = target.dataset.id;
-    if (SEED.orgs.some((o) => o.id === id)) { toast('기본 조직 단위는 삭제할 수 없습니다.'); return; }
-    state.orgs = state.orgs.filter((o) => o.id !== id);
-    save(); toast('조직 단위를 삭제했습니다.'); renderView();
+    const org = state.orgs.find((o) => o.id === id);
+    if (!org) return;
+    if (!org.parent) { toast('최상위 조직 단위는 삭제할 수 없습니다. 실제 관리 콘솔도 동일합니다.'); return; }
+    const doomed = new Set([org.name]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      state.orgs.forEach((o) => {
+        if (o.parent && doomed.has(o.parent) && !doomed.has(o.name)) { doomed.add(o.name); grew = true; }
+      });
+    }
+    const removed = doomed.size;
+    state.orgs = state.orgs.filter((o) => !doomed.has(o.name));
+    if (state.local.selectedOu && doomed.has(state.local.selectedOu)) state.local.selectedOu = '연습학교';
+    save();
+    toast(removed > 1
+      ? `조직 단위 ‘${org.name}’와 하위 조직 단위 ${removed - 1}개를 삭제했습니다.`
+      : `조직 단위 ‘${org.name}’를 삭제했습니다.`);
+    renderView();
   }
 }
 
@@ -632,15 +652,16 @@ function uid() {
 let policyCatalogs = null;
 async function loadPolicyCatalogs() {
   if (policyCatalogs) return policyCatalogs;
-  const [user, device, apps] = await Promise.all([
+  const [user, device, guest, apps] = await Promise.all([
     import('./data/chrome-user-policies.js'),
     import('./data/chrome-device-policies.js'),
+    import('./data/chrome-guest-session-policies.js'),
     import('./data/chrome-apps-extension-settings.js'),
   ]);
   policyCatalogs = {
     'chrome-user': user.chromePoliciesByTab['사용자 및 브라우저 설정'] || user.chromeUserPolicyCategories,
-    'chrome-device': user.chromePoliciesByTab['기기 설정'] || device.chromeDevicePolicyCategories,
-    'chrome-guest': user.chromePoliciesByTab['관리 게스트 세션 설정'] || [],
+    'chrome-device': device.chromeDevicePolicyCategories,
+    'chrome-guest': guest.chromeGuestSessionCategories,
     'chrome-apps-ext': apps.chromeAppsExtensionSettingsCategories,
   };
   return policyCatalogs;

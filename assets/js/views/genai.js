@@ -26,11 +26,11 @@ const ORG_ROWS = [
 ];
 
 const USER_ROWS = [
-  ['김하늘', 'haneul@school.sen.ms.kr', '2.교원', '186'],
-  ['이준서', 'junseo@school.sen.ms.kr', '3.학생', '142'],
-  ['박서연', 'seoyeon@school.sen.ms.kr', '2.교원', '128'],
-  ['최민재', 'minjae@school.sen.ms.kr', '3.학생', '97'],
-  ['정도윤', 'doyoon@school.sen.ms.kr', '1.관리자', '64'],
+  ['김하늘', 'haneul@practice.senedu.kr', '2.교원', '186'],
+  ['이준서', 'junseo@practice.senedu.kr', '3.학생', '142'],
+  ['박서연', 'seoyeon@practice.senedu.kr', '2.교원', '128'],
+  ['최민재', 'minjae@practice.senedu.kr', '3.학생', '97'],
+  ['정도윤', 'doyoon@practice.senedu.kr', '1.관리자', '64'],
 ];
 
 const SERVICE_STATE_OPTIONS = ['모든 사용자에 사용', '사용 중지됨', '일부 조직에만 사용'];

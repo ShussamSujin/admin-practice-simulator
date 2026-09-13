@@ -235,7 +235,7 @@ const COLLECTION_PAGES = {
       { key: 'status', label: '상태', editable: true, options: ['활성', '비활성'] },
     ],
     fields: [
-      { name: 'user', label: '사용자', required: true, placeholder: '예: teacher01@school.sen.ms.kr' },
+      { name: 'user', label: '사용자', required: true, placeholder: '예: teacher01@practice.senedu.kr' },
       { name: 'browser', label: '브라우저', placeholder: '예: Chrome 154 (Windows)' },
       { name: 'status', label: '상태', type: 'select', options: ['활성', '비활성'] },
     ],
@@ -256,7 +256,7 @@ const COLLECTION_PAGES = {
       { name: 'name', label: '이름', required: true, placeholder: '예: 학교 기본 정책' },
       { name: 'target', label: '적용 대상', type: 'select', options: OU_FIELD_OPTIONS },
       { name: 'modified', label: '수정일', type: 'date' },
-      { name: 'json', label: 'JSON 내용', type: 'textarea', placeholder: '{ "HomepageLocation": "https://school.sen.ms.kr" }' },
+      { name: 'json', label: 'JSON 내용', type: 'textarea', placeholder: '{ "HomepageLocation": "https://practice.senedu.kr" }' },
     ],
   },
   '토큰': {
@@ -298,12 +298,110 @@ const COLLECTION_PAGES = {
 };
 
 const LIST_PAGES = {
-  '보고서': {
-    title: '보고서',
-    breadcrumb: 'Chrome 브라우저',
-    description: '브라우저 버전·확장 프로그램·정책을 보고합니다.',
-    columns: ['보고서', '기간', '상태', '작업'],
-    rows: [['버전 보고서', '지난 7일', '준비됨', '보기'], ['확장 프로그램 보고서', '지난 30일', '준비됨', '보기']],
+  '보고서/개요': {
+    title: '보고서 개요',
+    breadcrumb: 'Chrome 브라우저 > 보고서',
+    description: '등록된 브라우저·기기의 보고 현황을 한눈에 확인합니다.',
+    columns: ['보고서', '설명', '상태', '마지막 업데이트'],
+    rows: [
+      ['기기', '등록된 기기와 브라우저 상태', '준비됨', '오늘'],
+      ['버전', '브라우저 버전 분포', '준비됨', '오늘'],
+      ['앱 및 확장 프로그램 사용', '설치된 확장 프로그램과 권한', '준비됨', '어제'],
+      ['통계', '브라우저 활동 통계', '준비됨', '오늘'],
+    ],
+    actionLabel: '보고서 새로고침',
+  },
+  '보고서/기기': {
+    title: '기기',
+    breadcrumb: 'Chrome 브라우저 > 보고서',
+    description: '브라우저가 등록된 기기 목록입니다.',
+    columns: ['기기', 'OS', '브라우저 버전', '정책 수'],
+    rows: [
+      ['교무실-PC-01', 'Windows 11', '128.0.6613.120', '14'],
+      ['과학실-PC-03', 'Windows 10', '127.0.6533.100', '14'],
+      ['도서관-크롬북-12', 'ChromeOS', '128.0.6613.114', '22'],
+    ],
+    actionLabel: '보고서 새로고침',
+  },
+  '보고서/버전': {
+    title: '버전',
+    breadcrumb: 'Chrome 브라우저 > 보고서',
+    description: '조직 내 브라우저 버전 분포입니다.',
+    columns: ['버전', '채널', '기기 수', '비율'],
+    rows: [
+      ['128.0.6613.120', 'Stable', '48', '62%'],
+      ['127.0.6533.100', 'Stable', '21', '27%'],
+      ['129.0.6668.29', 'Beta', '8', '11%'],
+    ],
+    actionLabel: '보고서 새로고침',
+  },
+  '보고서/앱 및 확장 프로그램 사용': {
+    title: '앱 및 확장 프로그램 사용',
+    breadcrumb: 'Chrome 브라우저 > 보고서',
+    description: '설치된 앱·확장 프로그램과 요청 권한을 확인합니다.',
+    columns: ['이름', '유형', '설치 수', '권한'],
+    rows: [
+      ['Kahoot!', '확장 프로그램', '35', '탭 읽기'],
+      ['Google Keep', '확장 프로그램', '52', '저장소'],
+      ['Padlet', '웹앱', '18', '—'],
+    ],
+    actionLabel: '보고서 새로고침',
+  },
+  '보고서/Android 앱 설치': {
+    title: 'Android 앱 설치',
+    breadcrumb: 'Chrome 브라우저 > 보고서',
+    description: 'ChromeOS 기기에 설치된 Android 앱 현황입니다.',
+    columns: ['앱', '패키지', '설치 수', '상태'],
+    rows: [
+      ['Google Classroom', 'com.google.android.apps.classroom', '124', '설치됨'],
+      ['ibis Paint X', 'jp.ne.ibis.ibispaintx.app', '31', '설치됨'],
+    ],
+    actionLabel: '보고서 새로고침',
+  },
+  '보고서/통계': {
+    title: '통계',
+    breadcrumb: 'Chrome 브라우저 > 보고서',
+    description: '브라우저 사용 통계를 기간별로 확인합니다.',
+    columns: ['항목', '값', '기간', '추세'],
+    rows: [
+      ['활성 브라우저', '77', '지난 7일', '▲ 4'],
+      ['정책 적용 기기', '69', '지난 7일', '▲ 2'],
+      ['미보고 기기', '3', '지난 28일', '▼ 1'],
+    ],
+    actionLabel: '보고서 새로고침',
+  },
+  '보고서/프린터': {
+    title: '프린터',
+    breadcrumb: 'Chrome 브라우저 > 보고서',
+    description: '조직에 배포된 프린터와 인쇄 작업 현황입니다.',
+    columns: ['프린터', '연결 기기', '인쇄 작업', '상태'],
+    rows: [
+      ['교무실-복합기', '42', '318', '온라인'],
+      ['행정실-프린터', '11', '95', '온라인'],
+    ],
+    actionLabel: '보고서 새로고침',
+  },
+  '보고서/Chrome 로그 이벤트': {
+    title: 'Chrome 로그 이벤트',
+    breadcrumb: 'Chrome 브라우저 > 보고서',
+    description: '브라우저에서 수집된 보안·정책 이벤트 로그입니다.',
+    columns: ['시간', '이벤트', '사용자', '기기'],
+    rows: [
+      ['오늘 09:12', '정책 업데이트 적용', 'system', '교무실-PC-01'],
+      ['오늘 08:47', '확장 프로그램 설치 차단', 'student12@practice.senedu.kr', '도서관-크롬북-12'],
+      ['어제 15:30', '안전하지 않은 사이트 경고', 'student07@practice.senedu.kr', '도서관-크롬북-08'],
+    ],
+    actionLabel: '보고서 새로고침',
+  },
+  '보고서/ChromeOS 비정상 종료': {
+    title: 'ChromeOS 비정상 종료',
+    breadcrumb: 'Chrome 브라우저 > 보고서',
+    description: 'ChromeOS 기기의 비정상 종료(크래시) 보고입니다.',
+    columns: ['날짜', '기기', '버전', '횟수'],
+    rows: [
+      ['2026-09-10', '도서관-크롬북-05', '128.0.6613.114', '2'],
+      ['2026-09-08', '과학실-크롬북-02', '127.0.6533.99', '1'],
+    ],
     actionLabel: '보고서 새로고침',
   },
 };
@@ -329,5 +427,6 @@ export default {
   '토큰': collectionView('토큰'),
   '앱 및 확장 프로그램': { render: renderApps },
   '커넥터': collectionView('커넥터'),
-  '보고서': listView('보고서'),
+  ...Object.fromEntries(Object.keys(LIST_PAGES).map((path) => [path, listView(path)])),
+  '보고서': listView('보고서/개요'),
 };

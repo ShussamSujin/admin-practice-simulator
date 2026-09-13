@@ -113,7 +113,7 @@ export default {
       <div class="home-head">
         <div>
           <h1>${full ? '관리 콘솔 홈' : '관리 콘솔 홈'}</h1>
-          <p>연습학교 · school.sen.ms.kr — ${ctx.esc(full ? '최고 관리자' : '학교 관리자(센스쿨)')} 권한으로 보는 중</p>
+          <p>연습학교 · practice.senedu.kr — ${ctx.esc(full ? '최고 관리자' : '학교 관리자(센스쿨)')} 권한으로 보는 중</p>
         </div>
         <span class="ou-badge">${ctx.icon('school', 18)} 연습학교</span>
       </div>

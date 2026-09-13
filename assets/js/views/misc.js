@@ -65,7 +65,7 @@ const chromeOsDeviceList = {
       fields: [
         { name: 'serial', label: '일련번호', required: true, placeholder: '예: 5CD1234ABC' },
         { name: 'ou', label: '조직 단위', type: 'select', options: OU_FIELD_OPTIONS },
-        { name: 'user', label: '최근 사용자', placeholder: '예: student01@school.sen.ms.kr' },
+        { name: 'user', label: '최근 사용자', placeholder: '예: student01@practice.senedu.kr' },
       ],
     });
   },
@@ -133,7 +133,7 @@ const mobileDeviceList = {
       fields: [
         { name: '기기 이름', label: '기기 이름', required: true, placeholder: '예: Galaxy Tab A9' },
         { name: '이름', label: '사용자 이름', placeholder: '예: 홍길동' },
-        { name: '이메일', label: '이메일', placeholder: '예: student01@school.sen.ms.kr' },
+        { name: '이메일', label: '이메일', placeholder: '예: student01@practice.senedu.kr' },
         { name: 'OS', label: 'OS', type: 'select', options: MOBILE_OS_OPTIONS },
         { name: '소유권', label: '소유권', type: 'select', options: MOBILE_OWNERSHIP },
       ],
@@ -187,7 +187,7 @@ const mobileDeviceApprovals = {
       ],
       fields: [
         { name: '기기', label: '기기', required: true, placeholder: '예: iPhone 16' },
-        { name: '사용자', label: '사용자', placeholder: '예: student01@school.sen.ms.kr' },
+        { name: '사용자', label: '사용자', placeholder: '예: student01@practice.senedu.kr' },
         { name: '요청일', label: '요청일', placeholder: '예: 2026. 9. 12.' },
         { name: '상태', label: '상태', type: 'select', options: ['대기', '승인', '거부'] },
       ],
@@ -242,7 +242,7 @@ const mobileAudit = {
         { name: '시간', label: '시간', placeholder: '예: 2026. 9. 12. 09:30' },
         { name: '이벤트', label: '이벤트', type: 'select', options: ['기기 등록', '기기 승인', '기기 차단', '계정 초기화', '정책 동기화'] },
         { name: '기기', label: '기기', placeholder: '예: Galaxy Tab A9' },
-        { name: '관리자', label: '관리자', placeholder: '예: admin@school.sen.ms.kr' },
+        { name: '관리자', label: '관리자', placeholder: '예: admin@practice.senedu.kr' },
       ],
     });
   },
@@ -494,9 +494,9 @@ const mobileOverview = {
 };
 
 const MOBILE_DEVICES = [
-  ['iPad (교사용)', 'iPadOS 18', 'teacher01@school.sen.ms.kr', '승인됨', '2026. 9. 11.'],
-  ['Galaxy Tab A9', 'Android 15', 'student01@school.sen.ms.kr', '승인됨', '2026. 9. 10.'],
-  ['iPhone 16', 'iOS 19', 'admin@school.sen.ms.kr', '승인 대기', '2026. 9. 9.'],
+  ['iPad (교사용)', 'iPadOS 18', 'teacher01@practice.senedu.kr', '승인됨', '2026. 9. 11.'],
+  ['Galaxy Tab A9', 'Android 15', 'student01@practice.senedu.kr', '승인됨', '2026. 9. 10.'],
+  ['iPhone 16', 'iOS 19', 'admin@practice.senedu.kr', '승인 대기', '2026. 9. 9.'],
 ];
 
 const devices = {
@@ -527,7 +527,7 @@ const devices = {
   'Chrome/설정': reuse(chromeViews['설정'], '기기 > Chrome > 설정'),
   'Chrome/앱 및 확장 프로그램': reuse(chromeViews['앱 및 확장 프로그램'], '기기 > Chrome > 앱 및 확장 프로그램'),
   'Chrome/커넥터': reuse(chromeViews['커넥터'], '기기 > Chrome > 커넥터'),
-  'Chrome/보고서': reuse(chromeViews['보고서'], '기기 > Chrome > 보고서'),
+  'Chrome/보고서': reuse(chromeViews['보고서/개요'], '기기 > Chrome > 보고서'),
   'Chrome/웹 기능': {
     render(ctx) {
       return ctx.listPage({
@@ -1186,7 +1186,7 @@ const data = {
         ],
         fields: [
           { name: 'job', label: '작업 이름', required: true, placeholder: '예: 사용자 목록 내보내기' },
-          { name: 'requester', label: '요청자', placeholder: '예: admin@school.sen.ms.kr' },
+          { name: 'requester', label: '요청자', placeholder: '예: admin@practice.senedu.kr' },
           { name: 'date', label: '요청일', type: 'date' },
           { name: 'status', label: '상태', type: 'select', options: ['진행 중', '완료', '실패'] },
         ],
@@ -1395,22 +1395,92 @@ const billing = {
   },
 };
 
+function accountTablePage(ctx, { crumb, title, desc, columns, rows, note = '' }) {
+  return `<div class="section-page wide admin-page">
+    ${ctx.crumb(crumb)}
+    <h1>${ctx.esc(title)}</h1>
+    ${desc ? `<p class="page-desc">${ctx.esc(desc)}</p>` : ''}
+    <div class="data-panel flat">
+      <table class="admin-table">
+        <thead><tr>${columns.map((c) => `<th>${ctx.esc(c)}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map((r) => `<tr>${r.map((v, i) => `<td>${i === 0 ? `<b class="blue-text">${ctx.esc(v)}</b>` : ctx.esc(v)}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+    </div>
+    ${note ? `<p class="page-desc">${ctx.esc(note)}</p>` : ''}
+  </div>`;
+}
+
 const account = {
-  '*': {
+  '계정 설정': {
     render(ctx) {
       return `<div class="section-page wide admin-page">
-        ${ctx.crumb(`계정 > ${ctx.state.link || '계정 설정'}`)}
+        ${ctx.crumb('계정 > 계정 설정')}
         <h1>계정 설정</h1>
-        <p class="page-desc">조직 프로필, 관리자, 도메인 정보를 관리합니다.</p>
+        <p class="page-desc">조직 프로필, 환경설정, 맞춤설정을 관리합니다.</p>
         <div class="settings-cards">
-          ${settingsCard(ctx, '프로필', '조직 이름, 언어, 시간대입니다.', [['조직 이름', '연습학교'], ['기본 언어', '한국어'], ['시간대', '(GMT+09:00) 서울'], ['기본 도메인', 'school.sen.ms.kr']])}
-          ${settingsCard(ctx, '관리자 역할', '위임된 관리자와 권한을 확인합니다.', [['최고 관리자', '1명'], ['학교 관리자(센스쿨)', '1명']])}
-          ${settingsCard(ctx, '법률 및 규정 준수', '학생 데이터 보호 및 동의 설정입니다.', [['만 18세 미만 지정', '사용 설정됨'], ['보호자 동의', '학교 관리']])}
+          ${settingsCard(ctx, '프로필', '조직 이름과 기본 관리자 정보입니다.', [['이름', '연습학교'], ['고객 ID', 'C00practice'], ['기본 관리자', 'admin@practice.senedu.kr']], false)}
+          ${settingsCard(ctx, '환경설정', '새 기능과 제품의 출시 방식을 선택합니다.', [['새로운 사용자 기능', '빠른 출시', ['빠른 출시', '예약 출시']], ['새 제품', '자동 배포', ['자동 배포', '수동 배포']], ['이메일 옵션', '도움말 및 업데이트, 기능 알림 수신']], false)}
+          ${settingsCard(ctx, 'Google Workspace의 스마트 기능', '스마트 기능의 기본 설정 사용 여부를 선택합니다.', [['기본 설정', '사용 설정됨', ['사용 설정됨', '사용 중지됨']]], false)}
+          ${settingsCard(ctx, '계정 관리', '계정을 삭제하면 모든 사용자 계정, 데이터, 서비스에 대한 액세스 권한이 완전히 삭제됩니다.', [], false)}
+          ${settingsCard(ctx, '맞춤설정', '로그인 화면 등에 표시할 조직 로고를 설정합니다.', [['로고', '설정되지 않음']], false)}
+          ${settingsCard(ctx, '중복 계정 관리', '중복되는 비관리 계정을 관리 계정으로 대체합니다.', [['처리 방식', '사용자에게 계정 이전 요청', ['사용자에게 계정 이전 요청', '자동으로 임시 계정 생성']]], false)}
         </div>
       </div>`;
     },
   },
+  '관리자 역할': {
+    render: (ctx) => accountTablePage(ctx, {
+      crumb: '계정 > 관리자 역할', title: '관리자 역할',
+      desc: '역할별 권한과 배정된 관리자를 확인합니다.',
+      columns: ['역할', '설명', '관리자 수'],
+      rows: [
+        ['최고 관리자', '관리 콘솔의 모든 기능에 액세스', '1'],
+        ['학교 관리자(센스쿨)', '학교 단위 사용자·기기 관리', '1'],
+        ['그룹 관리자', '그룹 생성 및 멤버십 관리', '0'],
+        ['도움말 데스크 관리자', '비밀번호 재설정 지원', '0'],
+      ],
+    }),
+  },
+  '도메인/개요': {
+    render(ctx) {
+      return `<div class="section-page wide admin-page">
+        ${ctx.crumb('계정 > 도메인 > 개요')}
+        <h1>도메인 개요</h1>
+        <p class="page-desc">조직에 연결된 도메인 현황입니다.</p>
+        <div class="settings-cards">
+          ${settingsCard(ctx, '기본 도메인', '사용자 이메일 주소에 사용되는 도메인입니다.', [['도메인', 'practice.senedu.kr'], ['상태', '확인됨']], false)}
+          ${settingsCard(ctx, '보조 도메인', '추가로 연결된 도메인입니다.', [['보조 도메인', '없음']], false)}
+        </div>
+      </div>`;
+    },
+  },
+  '도메인/도메인 관리': {
+    render: (ctx) => accountTablePage(ctx, {
+      crumb: '계정 > 도메인 > 도메인 관리', title: '도메인 관리',
+      desc: '도메인을 추가하거나 소유권을 확인합니다.',
+      columns: ['도메인', '유형', '상태', 'Gmail 사용'],
+      rows: [['practice.senedu.kr', '기본 도메인', '확인됨', '사용']],
+      note: '연습용 시뮬레이터에서는 도메인 추가가 실제로 진행되지 않습니다.',
+    }),
+  },
+  '도메인/허용된 도메인': {
+    render: (ctx) => accountTablePage(ctx, {
+      crumb: '계정 > 도메인 > 허용된 도메인', title: '허용된 도메인',
+      desc: '드라이브 공유 등에서 신뢰하는 외부 도메인 목록입니다.',
+      columns: ['도메인', '용도', '추가일'],
+      rows: [['sen.go.kr', '교육청 공유', '2026-03-02']],
+    }),
+  },
+  '리셀러 관리': {
+    render: (ctx) => accountTablePage(ctx, {
+      crumb: '계정 > 리셀러 관리', title: '리셀러 관리',
+      desc: '조직의 Google Workspace 리셀러 정보를 확인합니다.',
+      columns: ['리셀러', '역할', '상태'],
+      rows: [['연결된 리셀러 없음', '—', '—']],
+    }),
+  },
 };
+account['*'] = account['계정 설정'];
 
 const storage = {
   '*': {
@@ -1549,7 +1619,7 @@ Object.assign(security, {
       fields: [
         { name: 'name', label: '저장된 검색 이름', required: true, placeholder: '예: 외부 공유 문서 조회' },
         { name: 'source', label: '데이터 소스', type: 'select', options: ['Drive 로그 이벤트', 'Gmail 로그 이벤트', '사용자 로그 이벤트', '기기 로그 이벤트', '관리자 로그 이벤트'] },
-        { name: 'owner', label: '만든 사람', placeholder: '예: admin@school.sen.ms.kr' },
+        { name: 'owner', label: '만든 사람', placeholder: '예: admin@practice.senedu.kr' },
         { name: 'modified', label: '수정일', type: 'date' },
       ],
     }),
@@ -1593,7 +1663,7 @@ Object.assign(data, {
       ],
       fields: [
         { name: 'job', label: '작업 이름', required: true, placeholder: '예: 사용자 목록 내보내기' },
-        { name: 'requester', label: '요청자', placeholder: '예: admin@school.sen.ms.kr' },
+        { name: 'requester', label: '요청자', placeholder: '예: admin@practice.senedu.kr' },
         { name: 'date', label: '요청일', type: 'date' },
         { name: 'status', label: '상태', type: 'select', options: ['진행 중', '완료', '실패'] },
       ],

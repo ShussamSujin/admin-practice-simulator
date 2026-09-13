@@ -17,7 +17,7 @@ const SEED = {
     { id: 'org-root', name: '연습학교', parent: '', description: '연습학교' },
   ],
   users: [
-    { id: 'admin-locked', firstName: '관리자', lastName: '최고', email: 'admin@school.sen.ms.kr', org: '연습학교', status: '활성' },
+    { id: 'admin-locked', firstName: '관리자', lastName: '최고', email: 'admin@practice.senedu.kr', org: '연습학교', status: '활성' },
   ],
   groups: [],
   apps: [],
@@ -25,8 +25,8 @@ const SEED = {
 };
 
 const PROFILES = {
-  sen: { name: '연습학교 관리자', email: 'admin@school.sen.ms.kr', short: '학교', role: '학교 관리자(센스쿨)' },
-  full: { name: '최고 관리자', email: 'superadmin@school.sen.ms.kr', short: '최고', role: '최고 관리자' },
+  sen: { name: '연습학교 관리자', email: 'admin@practice.senedu.kr', short: '학교', role: '학교 관리자(센스쿨)' },
+  full: { name: '최고 관리자', email: 'superadmin@practice.senedu.kr', short: '최고', role: '최고 관리자' },
 };
 
 const state = {
@@ -504,7 +504,7 @@ function renderModal() {
           <label><span>성 *</span><input name="lastName" required></label>
           <label><span>이름 *</span><input name="firstName" required autofocus></label>
         </div>
-        <label><span>기본 이메일 *</span><div class="email-input"><input name="username" required pattern="[a-zA-Z0-9._-]+"><b>@school.sen.ms.kr</b></div></label>
+        <label><span>기본 이메일 *</span><div class="email-input"><input name="username" required pattern="[a-zA-Z0-9._-]+"><b>@practice.senedu.kr</b></div></label>
         <label><span>조직 단위</span><select name="org">${state.orgs.map((o) => `<option ${o.name === '3.학생' ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select></label>
         <div class="form-actions"><button type="button" data-close-modal>취소</button><button type="submit">사용자 추가</button></div>
       </form>`);
@@ -512,7 +512,7 @@ function renderModal() {
     root.innerHTML = modalShell('새 그룹 만들기', '그룹 주소와 구성원을 지정합니다.', `
       <form class="practice-form" data-form="group">
         <label><span>그룹 이름 *</span><input name="name" required autofocus></label>
-        <label><span>그룹 이메일 *</span><div class="email-input"><input name="address" required pattern="[a-zA-Z0-9._-]+"><b>@school.sen.ms.kr</b></div></label>
+        <label><span>그룹 이메일 *</span><div class="email-input"><input name="address" required pattern="[a-zA-Z0-9._-]+"><b>@practice.senedu.kr</b></div></label>
         <label><span>그룹 설명</span><textarea name="description"></textarea></label>
         <fieldset class="member-picker"><legend>구성원 선택</legend>
           ${state.users.map((u) => `<label><input type="checkbox" name="members" value="${esc(u.id)}"><span><strong>${esc(u.lastName)}${esc(u.firstName)}</strong><small>${esc(u.email)}</small></span></label>`).join('')}
@@ -856,23 +856,23 @@ document.addEventListener('submit', (event) => {
       id: uid(),
       firstName: String(data.get('firstName') || ''),
       lastName: String(data.get('lastName') || ''),
-      email: `${username}@school.sen.ms.kr`,
+      email: `${username}@practice.senedu.kr`,
       org: String(data.get('org') || '연습학교'),
       status: '활성',
     });
-    toast(`사용자 “${username}@school.sen.ms.kr”을 만들었습니다.`);
+    toast(`사용자 “${username}@practice.senedu.kr”을 만들었습니다.`);
   } else if (kind === 'group') {
     const address = String(data.get('address') || '').replace(/@.*/, '');
     const members = data.getAll('members').map(String);
     state.groups.push({
       id: uid(),
       name: String(data.get('name') || ''),
-      email: `${address}@school.sen.ms.kr`,
+      email: `${address}@practice.senedu.kr`,
       description: String(data.get('description') || ''),
       members,
       memberCount: members.length,
     });
-    toast(`그룹 “${address}@school.sen.ms.kr”을 만들었습니다.`);
+    toast(`그룹 “${address}@practice.senedu.kr”을 만들었습니다.`);
   } else if (kind === 'app') {
     const name = String(data.get('name') || '').trim();
     if (!name) return;

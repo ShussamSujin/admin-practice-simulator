@@ -110,7 +110,7 @@ export default {
     render(ctx) {
       // 전체 사용자 자동 그룹(all@)은 실제 사용자 수를 그대로 보여준다.
       const rows = [
-        { name: '연습학교', email: 'all@school.sen.ms.kr', members: ctx.state.users.length, desc: 'Default audience with all users in your organization (updated automatically)' },
+        { name: '연습학교', email: 'all@practice.senedu.kr', members: ctx.state.users.length, desc: 'Default audience with all users in your organization (updated automatically)' },
         ...ctx.state.groups.map((g) => ({ name: g.name, email: g.email, members: (g.members || []).length, desc: g.description || '' })),
       ];
       return `<div class="section-page wide admin-page">

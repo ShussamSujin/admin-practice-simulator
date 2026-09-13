@@ -46,9 +46,21 @@ export const SECTIONS = [
   },
 
   {
+    id: 'agents', title: '에이전트', icon: 'smart_toy', sen: false, badge: '새로운 기능',
+    subtitle: '교육용 자동화 기능 둘러보기',
+    links: ['에이전트 액세스 관리', '설정'],
+  },
+
+  {
     id: 'chrome', title: 'Chrome 브라우저', icon: 'language', sen: false, blueDot: true,
     subtitle: '브라우저 정책과 확장 프로그램 관리',
-    links: ['개요', '설정 가이드', '관리 브라우저', '관리 프로필', '설정', '커스텀 구성', '토큰', '앱 및 확장 프로그램', '커넥터', '보고서'],
+    links: [
+      '개요', '설정 가이드', '관리 브라우저', '관리 프로필', '설정', '커스텀 구성', '토큰', '앱 및 확장 프로그램', '커넥터',
+      {
+        name: '보고서',
+        children: ['개요', '기기', '버전', '앱 및 확장 프로그램 사용', 'Android 앱 설치', '통계', '프린터', 'Chrome 로그 이벤트', 'ChromeOS 비정상 종료'],
+      },
+    ],
   },
 
   {
@@ -61,12 +73,6 @@ export const SECTIONS = [
     id: 'ai', title: '생성형 AI', icon: 'auto_awesome', sen: false,
     subtitle: 'AI 기능의 접근 및 데이터 설정',
     links: ['Gemini 앱', 'Gemini Enterprise', 'Workspace의 Gemini', 'Gemini Notebook', 'Gemini 보고서'],
-  },
-
-  {
-    id: 'agents', title: '에이전트', icon: 'smart_toy', sen: false, badge: '새로운 기능',
-    subtitle: '교육용 자동화 기능 둘러보기',
-    links: ['에이전트 액세스 관리', '설정'],
   },
 
   {
@@ -115,7 +121,12 @@ export const SECTIONS = [
   {
     id: 'account', title: '계정', icon: 'settings', sen: false,
     subtitle: '조직 프로필과 환경설정 관리',
-    links: ['계정 설정', '프로필', '맞춤 URL', '법률 및 규정 준수'],
+    links: [
+      '계정 설정',
+      '관리자 역할',
+      { name: '도메인', children: ['개요', '도메인 관리', '허용된 도메인'] },
+      '리셀러 관리',
+    ],
   },
 
   { id: 'rules', title: '규칙', icon: 'policy', sen: true, subtitle: '알림 및 자동 작업 규칙 설정', links: [] },

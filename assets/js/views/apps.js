@@ -166,7 +166,7 @@ function overview(ctx) {
   const wsLinks = ['Gmail', 'Google Meet', 'Classroom', 'Drive 및 Docs', 'Workspace Studio'];
   return `<div class="section-page wide admin-page apps-section-page">`
     + crumb(ctx, '앱 > 개요')
-    + `<div class="page-title-row"><div><h1>앱</h1><p>연습학교(school.sen.ms.kr)의 Google Workspace 및 웹 앱을 관리합니다.</p></div></div>`
+    + `<div class="page-title-row"><div><h1>앱</h1><p>연습학교(practice.senedu.kr)의 Google Workspace 및 웹 앱을 관리합니다.</p></div></div>`
     + `<div class="apps-overview-grid">`
       + `<article class="dashboard-card" data-nav="apps::Google Workspace">`
         + `<header><div><h2>Google Workspace</h2><p>${WORKSPACE_NESTED.length}개 서비스</p></div>`
@@ -300,7 +300,7 @@ function gmail(ctx) {
   const sections = [
     ['서비스 상태', '모든 사용자에게 사용'],
     ['사용자 설정', '테마, 서명, 스마트 작성, 기밀 모드'],
-    ['호스트', 'school.sen.ms.kr 메일 라우팅 호스트'],
+    ['호스트', 'practice.senedu.kr 메일 라우팅 호스트'],
     ['기본 라우팅', '수신/발신 규칙'],
     ['이메일 인증(DKIM)', 'DKIM 키 관리'],
     ['스팸 격리 저장소 관리', '관리자 격리함'],
@@ -314,12 +314,12 @@ function gmail(ctx) {
       ['자동 읽음 확인', '사용 안함', ['사용 안함', '사용', '조직 내에서만 사용']],
       ['외부 수신 경고', '사용', ['사용', '사용 안함']],
     ], `${P} · 사용자 설정`);
-    if (title === '호스트') return kv(ctx, '호스트 이름', 'mail.school.sen.ms.kr',
-      `${P} · 호스트 이름`, ['mail.school.sen.ms.kr', 'smtp.school.sen.ms.kr', 'relay.school.sen.ms.kr', '설정 안함']);
+    if (title === '호스트') return kv(ctx, '호스트 이름', 'mail.practice.senedu.kr',
+      `${P} · 호스트 이름`, ['mail.practice.senedu.kr', 'smtp.practice.senedu.kr', 'relay.practice.senedu.kr', '설정 안함']);
     if (title === '기본 라우팅') return kv(ctx, '규칙', '기본 경로 · 연습학교',
       `${P} · 기본 라우팅 규칙`, ['기본 경로 · 연습학교', '수신 전용 경로', '발신 전용 경로', '규칙 없음']);
-    if (title === '이메일 인증(DKIM)') return kv(ctx, 'DKIM', '인증됨 · school.sen.ms.kr',
-      `${P} · DKIM`, ['인증됨 · school.sen.ms.kr', '인증 대기 중', '사용 안함']);
+    if (title === '이메일 인증(DKIM)') return kv(ctx, 'DKIM', '인증됨 · practice.senedu.kr',
+      `${P} · DKIM`, ['인증됨 · practice.senedu.kr', '인증 대기 중', '사용 안함']);
     if (title === '스팸 격리 저장소 관리') return kv(ctx, '격리함', '관리자 검토 · 14일 보관',
       `${P} · 스팸 격리 저장소`, ['관리자 검토 · 14일 보관', '관리자 검토 · 30일 보관', '사용자 검토 허용', '사용 안함']);
     if (title === '보안') return grid(ctx, [

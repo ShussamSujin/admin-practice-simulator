@@ -1,4 +1,4 @@
-/** Chrome 앱 및 확장 프로그램 > 설정 catalog (practice data for 연습학교 / school.sen.ms.kr). */
+/** Chrome 앱 및 확장 프로그램 > 설정 catalog (practice data for 연습학교 / practice.senedu.kr). */
 export const chromeAppsExtensionSettingsCategories = [
   {
     title: '허용/차단 모드',

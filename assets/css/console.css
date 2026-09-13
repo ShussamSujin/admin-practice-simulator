@@ -512,3 +512,9 @@ td .editable,.settings-card-grid .editable{margin-left:-8px}
 .room-settings-hero .section-icon{background:#e8f0fe;color:#1967d2}
 .room-settings-hero h2{margin:0;font-size:18px;font-weight:400}
 @media(max-width:900px){.resource-layout{grid-template-columns:1fr}}
+
+/* ---------- 보고서 라인 차트 범례 ---------- */
+.chart-legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px}
+.chart-legend label{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#3c4043;cursor:default}
+.legend-box{width:18px;height:18px;display:inline-grid;place-items:center;border-radius:3px;color:#fff;flex:0 0 auto}
+.legend-box .msi{font-size:14px;font-variation-settings:'wght' 600}

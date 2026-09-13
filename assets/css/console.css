@@ -537,3 +537,22 @@ button.ext-card .link-btn{display:inline-flex;align-items:center;gap:4px;margin-
 .lang-toggle:hover{background:#f1f3f4}
 .signin-lang{position:fixed;top:16px;right:16px;z-index:10}
 @media(max-width:860px){.lang-toggle{padding:0 10px}}
+
+/* ---------- 기기 등록 마법사 ---------- */
+.modal.enroll-modal{width:min(760px,100%)}
+.enroll-body{padding:4px 24px 24px}
+.enroll-body h3{margin:8px 0 16px;font-size:15px;font-weight:500;color:#1f1f1f}
+.enroll-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.enroll-card{
+  display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+  padding:22px;border:1px solid var(--g-divider);border-radius:12px;background:#fff;
+  text-align:left;font:inherit;cursor:pointer;transition:border-color .12s,box-shadow .12s;
+}
+.enroll-card:hover{box-shadow:0 1px 6px rgba(60,64,67,.18)}
+.enroll-card.selected{border:2px solid var(--g-blue);padding:21px}
+.enroll-card .enroll-art{height:48px;display:flex;align-items:center}
+.enroll-card strong{font-size:15px;font-weight:500}
+.enroll-card p{margin:0;color:var(--g-on-surface-var);font-size:13px;line-height:1.55;min-height:40px}
+.enroll-card .outline-button{pointer-events:none;min-height:34px;padding:0 18px}
+.enroll-body .form-actions .filled:disabled{background:#e8eaed;color:#9aa0a6;cursor:default}
+@media(max-width:640px){.enroll-cards{grid-template-columns:1fr}}

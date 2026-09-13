@@ -45,29 +45,88 @@ function defaultOptions(value) {
   return [v, '사용 설정됨', '사용 안함', 'Google 기본값 사용'].filter((x, i, a) => x && a.indexOf(x) === i);
 }
 
+const CHROME_LOGO_SVG = `<svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
+  <circle cx="24" cy="24" r="22" fill="#fff"/>
+  <path d="M24 2a22 22 0 0 1 19.05 11H24a11 11 0 0 0-9.53 5.5L7.6 6.9A21.94 21.94 0 0 1 24 2z" fill="#ea4335"/>
+  <path d="M45.05 15A22 22 0 0 1 24 46l9.53-16.5A10.94 10.94 0 0 0 35 24c0-3.2-1.37-6.08-3.55-8.1z" fill="#fbbc04" transform="rotate(120 24 24)"/>
+  <path d="M7.6 6.9 14.47 18.5A11 11 0 0 0 24 35c1.2 0 2.36-.19 3.44-.55L17.9 45.15A22 22 0 0 1 7.6 6.9z" fill="#34a853"/>
+  <circle cx="24" cy="24" r="9" fill="#fff"/>
+  <circle cx="24" cy="24" r="7" fill="#4285f4"/>
+</svg>`;
+
+const OTHER_OS_SVG = `<svg viewBox="0 0 120 44" width="120" height="44" aria-hidden="true">
+  <g><circle cx="20" cy="22" r="18" fill="#0f9bf2"/><path d="M11 21.4 19 20v-7l-8 1.2zm9-8.6 10-1.5V20H20zm-9 10.2 8 .1v7l-8-1.3zm9 .1h10v9.4L20 31z" fill="#fff"/></g>
+  <g><rect x="46" y="4" width="28" height="36" rx="6" fill="#e8eaed"/><path d="M60 12c1.8-2.4 4.6-2.3 4.6-2.3s.3 2.6-1.5 4.6c-1.9 2.1-4.4 1.9-4.4 1.9s-.4-2.3 1.3-4.2zm3.9 5.1c1 0 2.9.1 4.4 2.2-3.5 2.2-2.7 6.7.8 8.1-.7 1.9-2.4 5.3-4.5 5.3-1.3 0-1.7-.8-3.4-.8s-2.2.8-3.4.8c-2.2 0-5-4.9-5-8.9 0-4.4 3-6.6 5.4-6.6 1.4 0 2.5.9 3.3.9.7 0 1.4-1 2.4-1z" fill="#111"/></g>
+  <g transform="translate(88,2)"><path d="M16 0c-3 0-5 2.4-5 6 0 2.2.4 3.8-.6 6-.9 2-3 3.9-3.9 6.6-.8 2.3-.6 4.9.6 6.7-.9.6-1.7 1.5-1.2 2.7.4 1 1.7 1 2.7 1.4 1.1.4 2 .9 3.2 1.1 1.4.3 2.9.1 4.2.1s2.8.2 4.2-.1c1.2-.2 2.1-.7 3.2-1.1 1-.4 2.3-.4 2.7-1.4.5-1.2-.3-2.1-1.2-2.7 1.2-1.8 1.4-4.4.6-6.7-.9-2.7-3-4.6-3.9-6.6-1-2.2-.6-3.8-.6-6 0-3.6-2-6-5-6z" fill="#111"/><path d="M12.5 9.5c0 .8.5 1.5 1.2 1.5s1.3-.7 1.3-1.5-.6-1.5-1.3-1.5-1.2.7-1.2 1.5zm5.8 0c0 .8.6 1.5 1.3 1.5s1.2-.7 1.2-1.5-.5-1.5-1.2-1.5-1.3.7-1.3 1.5z" fill="#fff"/><path d="M13 20c1 2 5 2 6 0l3 8c-2 2-10 2-12 0z" fill="#f5c211"/></g>
+</svg>`;
+
 const chromeOsDeviceList = {
   render(ctx) {
-    return ctx.listPage({
-      key: 'chromeos-devices',
-      title: 'ChromeOS 기기',
-      breadcrumb: '기기 > Chrome',
-      description: '등록된 크롬북을 조직 단위별로 관리합니다.',
-      addLabel: '기기 등록',
-      ouPicker: true,
-      emptyTitle: '아직 등록된 ChromeOS 기기가 없습니다',
-      columns: [
-        { key: 'serial', label: '일련번호' },
-        { key: 'status', label: '상태', editable: true, options: ['프로비저닝됨', '사용 중지됨'] },
-        { key: 'ou', label: '조직 단위' },
-        { key: 'user', label: '최근 사용자' },
-        { key: 'lastSync', label: '마지막 동기화' },
-      ],
-      fields: [
-        { name: 'serial', label: '일련번호', required: true, placeholder: '예: 5CD1234ABC' },
-        { name: 'ou', label: '조직 단위', type: 'select', options: OU_FIELD_OPTIONS },
-        { name: 'user', label: '최근 사용자', placeholder: '예: student01@practice.senedu.kr' },
-      ],
-    });
+    const tab = ctx.local('cbTab', '기기');
+    const rows = ctx.collection('chromeos-devices');
+    const ou = ctx.currentOu();
+    const shown = rows.filter((r) => ou === '연습학교' || r.ou === ou);
+
+    const dashboard = `<div class="chrome-widgets" style="margin-top:16px">
+      ${['프로비저닝됨', '사용 중지됨'].map((s) => `<article class="g-card" style="background:#fff;border:1px solid var(--g-divider)">
+        <h3 style="margin:0 0 14px;font-size:16px;font-weight:500">${ctx.esc(s)}</h3>
+        <div class="stat-row"><span>기기<br><b>${rows.filter((r) => r.status === s).length}</b></span></div>
+      </article>`).join('')}
+    </div>`;
+
+    const table = `
+      <div style="display:flex;align-items:center;gap:12px;margin:16px 0 12px">
+        <label class="ou-search tight" style="margin:0;flex:0 0 300px">${ctx.icon('search', 16)}<input placeholder="Search"></label>
+        ${ctx.editable({ scope: 'cb-filter', name: 'Chrome 기기 · 상태 필터', value: '상태', section: 'Chrome 기기', options: ['모두', '프로비저닝됨', '사용 중지됨', '비활성'] })}
+        <button class="link-btn" data-toast="필터 추가">필터 추가 ${ctx.icon('arrow_drop_down', 16)}</button>
+      </div>
+      <div class="data-panel flat">
+        <div class="action-strip"><strong>기기 ${shown.length}대</strong><button class="icon-button" data-toast="다운로드" style="width:36px;height:36px">${ctx.icon('download', 18)}</button></div>
+        ${shown.length ? `<div class="table-wrap"><table class="admin-table">
+          <thead><tr><th></th><th>일련번호</th><th>상태</th><th>애셋 ID:</th><th>조직 단위</th><th>최근 사용자</th><th>등록 시간</th><th>마지막 정책 동기화</th><th class="col-actions"></th></tr></thead>
+          <tbody>${shown.map((r) => `<tr>
+            <td><input type="checkbox"></td>
+            <td><b class="blue-text">${ctx.esc(r.serial || '—')}</b></td>
+            <td>${ctx.editable({ scope: 'list:chromeos-devices', name: `${r.serial} · 상태`, value: r.status || '프로비저닝됨', section: 'Chrome 기기', options: ['프로비저닝됨', '사용 중지됨', '비활성'] })}</td>
+            <td>${ctx.esc(r.asset || '—')}</td>
+            <td><span class="blue-text">${ctx.esc(r.ou || '연습학교')}</span></td>
+            <td>${ctx.esc(r.user || '—')}</td>
+            <td>${ctx.esc(r.enrolled || '—')}</td>
+            <td>${ctx.esc(r.sync || '—')}</td>
+            <td class="col-actions"><button class="row-action danger" data-action="delete-record" data-key="chromeos-devices" data-id="${ctx.esc(r.id)}" title="삭제">${ctx.icon('delete', 18)}</button></td>
+          </tr>`).join('')}</tbody>
+        </table></div>
+        <div class="table-footer"><span>페이지당 행 수: 50</span><span>1 중 1–${shown.length}</span></div>`
+        : `<div class="list-empty">${ctx.icon('laptop_chromebook', 40)}<strong>등록된 기기가 없습니다</strong><p>‘기기 등록’을 눌러 ChromeOS 기기를 조직에 연결해 보세요.</p><button class="primary-button" data-modal="enroll-device">기기 등록</button></div>`}
+      </div>`;
+
+    return `<div class="section-page wide admin-page">
+      ${ctx.crumb('기기 > Chrome > 기기')}
+      <div class="page-title-row">
+        <div><h1>Chrome 기기</h1></div>
+        <div style="display:flex;gap:10px">
+          <button class="outline-button" data-toast="업그레이드 보기">업그레이드 보기</button>
+          <button class="primary-button" data-modal="enroll-device">기기 등록</button>
+        </div>
+      </div>
+      <div class="directory-layout">
+        <aside class="org-tree compact">
+          <button class="tree-root ${ou === '연습학교' ? 'selected' : ''}" data-set="selectedOu::연습학교" style="font-weight:500">모든 기기</button>
+          <div style="border-top:1px solid var(--g-divider);margin:6px 0"></div>
+          <button class="tree-child" data-toast="그룹">그룹 ${ctx.icon('arrow_drop_down', 16)}</button>
+          <div style="border-top:1px solid var(--g-divider);margin:6px 0"></div>
+          <div style="padding:8px 14px;font-size:13px;color:#444746">조직 단위</div>
+          <label class="ou-search tight">${ctx.icon('search', 16)}<input placeholder="조직 단위 검색"></label>
+          ${ctx.orgRows().map((o) => `<button class="${o.depth === 0 ? 'tree-root' : 'tree-child'} ${ou === o.name ? 'selected' : ''}"
+            style="padding-left:${12 + o.depth * 16}px" data-set="selectedOu::${ctx.esc(o.name)}">
+            ${o.hasChildren ? ctx.icon('arrow_drop_down', 16) : '<span class="ou-spacer"></span>'}${ctx.esc(o.name)}</button>`).join('')}
+        </aside>
+        <section style="min-width:0">
+          <div class="apps-tabs">${['기기', '대시보드'].map((t) => `<button class="${tab === t ? 'active' : ''}" data-set="cbTab::${t}">${t}</button>`).join('')}</div>
+          ${tab === '대시보드' ? dashboard : table}
+        </section>
+      </div>
+    </div>`;
   },
 };
 

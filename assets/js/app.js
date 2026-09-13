@@ -22,7 +22,15 @@ const SEED = {
   ],
   groups: [],
   apps: [],
-  records: {},
+  records: {
+    // 관리자가 미리 등록해 둔 연습용 크롬북 — 기기 목록이 비어 보이지 않도록 한다.
+    'chromeos-devices': [
+      { id: 'seed-cb-1', serial: '4TA49FNR8OO868A', status: '프로비저닝됨', asset: 'YONG-2024-001', ou: '연습학교', user: 'admin@practice.senedu.kr', enrolled: '2024. 8. 7. 오후 7:27', sync: '2026. 9. 12. 오후 7:40' },
+      { id: 'seed-cb-2', serial: '5CD3391KQTW214B', status: '프로비저닝됨', asset: 'YONG-2024-002', ou: '연습학교', user: 'admin@practice.senedu.kr', enrolled: '2024. 8. 7. 오후 7:31', sync: '2026. 9. 12. 오후 7:38' },
+      { id: 'seed-cb-3', serial: '5CD3391KQTW215C', status: '프로비저닝됨', asset: 'YONG-2025-014', ou: '연습학교', user: 'admin@practice.senedu.kr', enrolled: '2025. 3. 2. 오전 9:12', sync: '2026. 9. 11. 오후 4:02' },
+      { id: 'seed-cb-4', serial: 'NXHQEAA0034127D', status: '사용 중지됨', asset: 'YONG-2023-087', ou: '연습학교', user: 'admin@practice.senedu.kr', enrolled: '2023. 11. 20. 오후 2:45', sync: '2026. 6. 30. 오전 10:11' },
+    ],
+  },
 };
 
 const PROFILES = {
@@ -42,7 +50,7 @@ const state = {
   users: SEED.users.slice(),
   groups: SEED.groups.slice(),
   apps: SEED.apps.map((a) => ({ ...a })),
-  records: {},
+  records: JSON.parse(JSON.stringify(SEED.records)),
   local: {},
   expanded: {},
   lang: (typeof localStorage !== 'undefined' && localStorage.getItem('admin-sim:lang')) || 'ko',
@@ -67,6 +75,9 @@ function load() {
       state.groups = saved.groups || state.groups;
       state.apps = saved.apps || state.apps;
       state.records = saved.records || {};
+      for (const key of Object.keys(SEED.records)) {
+        if (!(key in state.records)) state.records[key] = SEED.records[key].map((r) => ({ ...r }));
+      }
     }
     policies = migrateDomain(JSON.parse(localStorage.getItem(POLICY_KEY) || '{}'));
   } catch { /* 저장 값이 깨졌으면 기본값 사용 */ }
@@ -488,6 +499,24 @@ function openModal(kind, options) {
 }
 function closeModal() { modalState = null; $('#modal-root').innerHTML = ''; }
 
+const CHROME_LOGO_ART = `<svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
+  <circle cx="24" cy="24" r="21" fill="#fff" stroke="#e8eaed"/>
+  <path d="M24 3a21 21 0 0 1 18.19 10.5H24a10.5 10.5 0 0 0-9.1 5.25L8.35 7.66A20.94 20.94 0 0 1 24 3z" fill="#ea4335"/>
+  <path d="M42.19 13.5a21 21 0 0 1-16 31.15l8.36-14.48A10.45 10.45 0 0 0 34.5 24c0-2.02-.57-3.9-1.56-5.5z" fill="#fbbc04"/>
+  <path d="M8.35 7.66l6.55 11.34A10.5 10.5 0 0 0 24 34.5c1.13 0 2.22-.18 3.24-.51l-8.36 14.48A21 21 0 0 1 8.35 7.66z" fill="#34a853"/>
+  <circle cx="24" cy="24" r="8.5" fill="#fff"/>
+  <circle cx="24" cy="24" r="6.5" fill="#4285f4"/>
+</svg>`;
+const OTHER_OS_ART = `<svg viewBox="0 0 132 48" width="132" height="48" aria-hidden="true">
+  <circle cx="22" cy="24" r="19" fill="#0f9bf2"/>
+  <path d="M12.5 23.2 21 21.8v-7.4l-8.5 1.3zm9.7-9.2 11.3-1.7v11h-11.3zm-9.7 10.9 8.5.1v7.4l-8.5-1.4zm9.7.1h11.3v10l-11.3-2z" fill="#fff"/>
+  <rect x="50" y="4" width="30" height="40" rx="7" fill="#f1f3f4"/>
+  <path d="M65 13.4c1.9-2.6 4.9-2.5 4.9-2.5s.4 2.8-1.6 5c-2 2.2-4.7 2-4.7 2s-.4-2.5 1.4-4.5zm4.2 5.5c1.1 0 3.1.1 4.7 2.4-3.7 2.3-2.9 7.2.9 8.7-.8 2-2.6 5.6-4.8 5.6-1.4 0-1.8-.8-3.6-.8s-2.4.8-3.6.8c-2.4 0-5.4-5.2-5.4-9.5 0-4.7 3.2-7 5.8-7 1.5 0 2.7.9 3.5.9.8 0 1.5-1.1 2.5-1.1z" fill="#202124"/>
+  <path d="M113 6c-3.2 0-5.4 2.6-5.4 6.4 0 2.3.5 4-.6 6.4-1 2.1-3.2 4.2-4.2 7-.9 2.5-.6 5.2.7 7.2-1 .6-1.9 1.6-1.3 2.9.5 1 1.9 1.1 2.9 1.5 1.2.4 2.2 1 3.4 1.2 1.5.3 3.1.1 4.5.1s3 .2 4.5-.1c1.2-.2 2.2-.8 3.4-1.2 1-.4 2.4-.4 2.9-1.5.6-1.3-.3-2.3-1.3-2.9 1.3-2 1.6-4.7.7-7.2-1-2.8-3.2-4.9-4.2-7-1.1-2.4-.6-4.1-.6-6.4 0-3.8-2.2-6.4-5.4-6.4z" fill="#202124"/>
+  <path d="M109.2 16.2c0 .9.6 1.6 1.3 1.6s1.4-.7 1.4-1.6-.6-1.6-1.4-1.6-1.3.7-1.3 1.6zm6.3 0c0 .9.6 1.6 1.4 1.6s1.3-.7 1.3-1.6-.6-1.6-1.3-1.6-1.4.7-1.4 1.6z" fill="#fff"/>
+  <path d="M109.8 27.5c1.1 2.2 5.4 2.2 6.4 0l3.2 8.6c-2.1 2.2-10.7 2.2-12.8 0z" fill="#f5c211"/>
+</svg>`;
+
 function modalShell(title, description, body) {
   return `<div class="modal-backdrop" data-backdrop>
     <section class="modal" role="dialog" aria-modal="true">
@@ -571,6 +600,55 @@ function renderModal() {
           <button type="button" class="filled" data-action="reset-confirm">초기화</button>
         </div>
       </div>`);
+  } else if (kind === 'enroll-device') {
+    const step = options.step || 1;
+    const type = options.type || '';
+    if (step === 1) {
+      root.innerHTML = `<div class="modal-backdrop" data-backdrop>
+        <section class="modal enroll-modal" role="dialog" aria-modal="true">
+          <header>
+            <div><p class="eyebrow">연습 모드</p><h2>기기 등록</h2>
+            <p>기기를 등록하면 해당 기기가 조직에 연결됩니다. 연결되면 보안 설정을 적용하고, 앱을 설치하고, 기기 보고를 확인할 수 있습니다.</p></div>
+            <button class="icon-button" data-close-modal aria-label="닫기">${icon('close', 22)}</button>
+          </header>
+          <div class="enroll-body">
+            <h3>1단계: 어떤 유형의 기기를 등록하시겠어요?</h3>
+            <div class="enroll-cards">
+              <button class="enroll-card ${type === 'chromeos' ? 'selected' : ''}" data-enroll-type="chromeos">
+                <span class="enroll-art">${CHROME_LOGO_ART}</span>
+                <strong>Chrome OS 기기</strong>
+                <p>Google ChromeOS 운영체제를 실행하는 기기를 조직에 연결합니다.</p>
+                <span class="outline-button">선택</span>
+              </button>
+              <button class="enroll-card ${type === 'flex' ? 'selected' : ''}" data-enroll-type="flex">
+                <span class="enroll-art">${OTHER_OS_ART}</span>
+                <strong>ChromeOS가 아닌 기기(ChromeOS Flex 포함)</strong>
+                <p>Windows, MacOS, Linux 기기를 ChromeOS Flex로 변환한 다음 기기를 조직에 연결합니다.</p>
+                <span class="outline-button">선택</span>
+              </button>
+            </div>
+            <div class="form-actions" style="justify-content:flex-start">
+              <button type="button" class="filled" data-enroll-next ${type ? '' : 'disabled'}>다음</button>
+            </div>
+          </div>
+        </section>
+      </div>`;
+    } else {
+      root.innerHTML = modalShell('기기 등록', `2단계: ${type === 'flex' ? 'ChromeOS Flex' : 'ChromeOS'} 기기 정보를 입력하세요.`, `
+        <form class="practice-form" data-form="enroll" data-type="${esc(type)}">
+          <label><span>일련번호 *</span><input name="serial" required autofocus autocomplete="off" placeholder="예: 5CD1234ABCD"></label>
+          <label><span>애셋 ID</span><input name="asset" autocomplete="off" placeholder="예: YONG-2026-001"></label>
+          <label><span>조직 단위</span>
+            <select name="ou">${state.orgs.map((o) => `<option ${o.name === currentOu() ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>
+          </label>
+          <label><span>등록 사용자</span><input name="user" value="admin@practice.senedu.kr" autocomplete="off"></label>
+          <div class="form-actions">
+            <button type="button" data-enroll-back>이전</button>
+            <button type="button" data-close-modal>취소</button>
+            <button type="submit">등록</button>
+          </div>
+        </form>`);
+    }
   } else if (kind === 'legal') {
     const DOCS = {
       privacy: {
@@ -744,7 +822,7 @@ function renderModal() {
 
 /* ---------------- 이벤트 위임 ---------------- */
 document.addEventListener('click', (event) => {
-  const target = event.target.closest('.lang-toggle,[data-signin],[data-mode],[data-nav],[data-toast],[data-set],[data-policy],[data-edit],[data-modal],[data-add],[data-close-modal],[data-backdrop],[data-close-toast],[data-policy-reset],[data-action]');
+  const target = event.target.closest('.lang-toggle,[data-enroll-type],[data-enroll-next],[data-enroll-back],[data-signin],[data-mode],[data-nav],[data-toast],[data-set],[data-policy],[data-edit],[data-modal],[data-add],[data-close-modal],[data-backdrop],[data-close-toast],[data-policy-reset],[data-action]');
   if (!target) return;
 
   if (target.classList && target.classList.contains('lang-toggle')) {
@@ -833,6 +911,18 @@ document.addEventListener('click', (event) => {
     closeModal();
     return;
   }
+  if (target.hasAttribute('data-enroll-type')) {
+    openModal('enroll-device', { step: 1, type: target.getAttribute('data-enroll-type') });
+    return;
+  }
+  if (target.hasAttribute('data-enroll-next')) {
+    if (!target.disabled) openModal('enroll-device', { step: 2, type: modalState?.options?.type || 'chromeos' });
+    return;
+  }
+  if (target.hasAttribute('data-enroll-back')) {
+    openModal('enroll-device', { step: 1, type: modalState?.options?.type || '' });
+    return;
+  }
   if (target.hasAttribute('data-policy-reset')) {
     const form = target.closest('form');
     const scope = form.dataset.scope;
@@ -861,7 +951,7 @@ function handleAction(action, target) {
     state.users = SEED.users.map((u) => ({ ...u }));
     state.groups = SEED.groups.map((g) => ({ ...g }));
     state.apps = SEED.apps.map((a) => ({ ...a }));
-    state.records = {};
+    state.records = JSON.parse(JSON.stringify(SEED.records));
     state.local = {};
     try { localStorage.removeItem(POLICY_KEY); } catch { /* noop */ }
     save();
@@ -1010,6 +1100,23 @@ document.addEventListener('submit', (event) => {
     const label = row[schema.fields[0]?.name] || '항목';
     state.records[key] = (state.records[key] || []).concat(row);
     toast(`‘${label}’을(를) 추가했습니다.`);
+  } else if (kind === 'enroll') {
+    const serial = String(data.get('serial') || '').trim();
+    if (!serial) return;
+    const now = new Date();
+    const stamp = `${now.getFullYear()}. ${now.getMonth() + 1}. ${now.getDate()}. ${now.getHours() < 12 ? '오전' : '오후'} ${((now.getHours() + 11) % 12) + 1}:${String(now.getMinutes()).padStart(2, '0')}`;
+    state.records['chromeos-devices'] = (state.records['chromeos-devices'] || []).concat({
+      id: uid(),
+      serial,
+      status: '프로비저닝됨',
+      asset: String(data.get('asset') || '').trim() || '—',
+      ou: String(data.get('ou') || currentOu()),
+      user: String(data.get('user') || '').trim() || PROFILES[state.mode].email,
+      enrolled: stamp,
+      sync: stamp,
+      flex: form.dataset.type === 'flex',
+    });
+    toast(`기기 ‘${serial}’을(를) 등록했습니다. 정책이 곧 동기화됩니다. (연습용)`);
   } else if (kind === 'policy') {
     const scope = form.dataset.scope;
     const name = form.dataset.name;

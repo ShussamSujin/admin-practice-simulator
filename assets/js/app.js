@@ -556,6 +556,44 @@ function renderModal() {
           <button type="button" class="filled" data-action="reset-confirm">초기화</button>
         </div>
       </div>`);
+  } else if (kind === 'legal') {
+    const DOCS = {
+      privacy: {
+        title: '개인정보처리방침',
+        body: `
+          <p><b>이 시뮬레이터는 개인정보를 일절 수집하지 않습니다.</b></p>
+          <p>1. <b>수집하는 정보 없음</b> — 회원가입·로그인이 없으며, 이름·이메일·비밀번호 등 어떤 개인정보도 입력받거나 서버로 전송하지 않습니다. 서버 자체가 없는 정적 웹사이트입니다.</p>
+          <p>2. <b>저장 위치</b> — 연습 중 입력한 내용(가상의 사용자·조직 단위·설정값 등)은 <b>사용자 본인 브라우저의 저장공간(localStorage)에만</b> 보관되며, 제작자를 포함해 누구에게도 전송되지 않습니다.</p>
+          <p>3. <b>삭제 방법</b> — 화면 우측 상단 프로필 → <b>‘연습 데이터 초기화’</b>를 누르면 모든 연습 내용이 즉시 삭제됩니다. 브라우저의 인터넷 사용 기록 삭제로도 지워집니다.</p>
+          <p>4. <b>쿠키·추적 없음</b> — 쿠키, 광고, 방문 분석 도구를 사용하지 않습니다.</p>
+          <p>5. <b>주의</b> — 연습 화면에 실제 학생·교직원의 실명이나 실제 계정 정보를 입력하지 않는 것을 권장합니다. 입력하더라도 본인 브라우저 밖으로 나가지 않지만, 공용 기기에서는 사용 후 꼭 초기화해 주세요.</p>
+          <p style="color:#5f6368">문의: gajungssamzzang@gmail.com</p>`,
+      },
+      terms: {
+        title: '서비스 약관',
+        body: `
+          <p>1. <b>목적</b> — 이 사이트는 서울 지역 학교 <b>정보부장 선생님들의 Google 관리 콘솔 연수·연습</b>을 위해 만들어진 비공식 교육용 시뮬레이터입니다.</p>
+          <p>2. <b>Google과의 관계 없음</b> — 이 사이트는 <b>Google LLC와 아무런 관련이 없으며</b>, Google이 제작·승인·후원하지 않았습니다. 화면 구성은 오직 교육 목적으로 Google 관리 콘솔의 모습을 재현한 것입니다. Google, Google Workspace, Chrome은 Google LLC의 상표입니다.</p>
+          <p>3. <b>가짜 환경</b> — 여기서 바꾸는 모든 설정은 가상의 연습 데이터이며, 실제 학교의 Google Workspace 조직에는 어떤 영향도 주지 않습니다.</p>
+          <p>4. <b>무보증</b> — 교육용으로 ‘있는 그대로’ 제공되며, 실제 콘솔과 화면·기능이 다를 수 있습니다. 실제 조직 설정은 반드시 admin.google.com에서 확인하세요.</p>
+          <p>5. <b>제작</b> — © Google Certified Trainer &amp; Innovator Sujin Lee</p>
+          <p style="color:#5f6368">문의: gajungssamzzang@gmail.com</p>`,
+      },
+      billing: {
+        title: '결제 조건',
+        body: `
+          <p><b>이 시뮬레이터는 완전 무료입니다.</b></p>
+          <p>1. 어떤 요금도 청구하지 않으며, 결제 수단을 입력받는 기능 자체가 없습니다.</p>
+          <p>2. 화면에 보이는 ‘결제’, ‘구독’, ‘라이선스’ 메뉴는 실제 Google 관리 콘솔의 모습을 연습하기 위한 <b>가짜 화면</b>이며 실제 결제와 무관합니다.</p>
+          <p>3. 이 사이트는 Google LLC와 관련이 없으므로, 실제 Google Workspace 요금·결제는 admin.google.com과 Google의 공식 약관을 따릅니다.</p>
+          <p style="color:#5f6368">문의: gajungssamzzang@gmail.com</p>`,
+      },
+    };
+    const doc = DOCS[options.legal] || DOCS.terms;
+    root.innerHTML = modalShell(doc.title, '연수용 시뮬레이터 안내 문서', `
+      <div class="legal-doc">${doc.body}
+        <div class="form-actions"><button type="button" class="filled" data-close-modal>확인</button></div>
+      </div>`);
   } else if (kind === 'record') {
     const schema = SCHEMAS[options.key];
     if (!schema) { root.innerHTML = ''; return; }
@@ -701,7 +739,7 @@ document.addEventListener('click', (event) => {
     return;
   }
   if (target.hasAttribute('data-modal')) {
-    openModal(target.getAttribute('data-modal'), { parent: target.dataset.parent, source: target.dataset.source });
+    openModal(target.getAttribute('data-modal'), { parent: target.dataset.parent, source: target.dataset.source, legal: target.dataset.legal });
     return;
   }
   if (target.hasAttribute('data-edit')) {

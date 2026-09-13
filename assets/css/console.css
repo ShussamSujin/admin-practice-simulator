@@ -522,3 +522,9 @@ td .editable,.settings-card-grid .editable{margin-left:-8px}
 /* ext-card 를 버튼으로 쓸 때 */
 button.ext-card{font:inherit;text-align:left;display:block;width:100%}
 button.ext-card .link-btn{display:inline-flex;align-items:center;gap:4px;margin-top:14px}
+
+/* ---------- 약관/개인정보 문서 모달 ---------- */
+.legal-doc{padding:8px 24px 24px;font-size:14px;line-height:1.7;color:#3c4043}
+.legal-doc p{margin:0 0 12px}
+.legal-doc b{color:#1f1f1f}
+.signin-footer a{color:var(--g-blue)}

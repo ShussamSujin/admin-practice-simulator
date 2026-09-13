@@ -14,7 +14,7 @@ export const SECTIONS = [
       '그룹',
       { name: '공유 대상 그룹', sen: false },
       '조직 단위',
-      { name: '건물 및 리소스', children: ['건물 관리', '리소스 관리', '기능 관리'] },
+      { name: '건물 및 리소스', children: ['개요', '리소스 관리', '회의실 통계', '회의실 설정'] },
       '디렉터리 설정',
       { name: '외부 디렉터리', sen: false },
     ],
@@ -33,7 +33,14 @@ export const SECTIONS = [
           { name: '보고서', children: ['기기 보고서', '앱 및 확장 프로그램 사용량', '버전 보고서'] },
         ],
       },
-      { name: '모바일 및 엔드포인트', children: ['개요', '기기', '설정', '앱'] },
+      {
+        name: '모바일 및 엔드포인트',
+        children: [
+          '기기', '회사 소유 인벤토리', '기기 승인',
+          { name: '설정', children: ['Android', 'iOS', 'Windows', '범용', '등록', '타사 통합'] },
+          '앱', '보고서', '감사', '보고서 규칙 관리', '규칙',
+        ],
+      },
       { name: '네트워크', sen: false },
     ],
   },
@@ -59,7 +66,7 @@ export const SECTIONS = [
   {
     id: 'agents', title: '에이전트', icon: 'smart_toy', sen: false, badge: '새로운 기능',
     subtitle: '교육용 자동화 기능 둘러보기',
-    links: ['에이전트 개요', '활동', '설정'],
+    links: ['에이전트 액세스 관리', '설정'],
   },
 
   {
@@ -67,10 +74,20 @@ export const SECTIONS = [
     subtitle: '인증, 알림, 조사 도구',
     links: [
       '개요',
+      '알림 센터',
       { name: '보안 센터', sen: false, children: ['대시보드', '조사 도구', '상태 점검'] },
-      { name: '인증', children: ['2단계 인증', '로그인 챌린지', '고급 보호 프로그램', '비밀번호 관리'] },
-      { name: '액세스 및 데이터 제어', children: ['API 제어', '덜 안전한 앱', '컨텍스트 인식 액세스', '데이터 보호'] },
-      { name: '경고 센터', sen: false },
+      {
+        name: '인증',
+        children: [
+          '2단계 인증', '계정 복구', '고급 보호 프로그램', '본인 확인 요청', '패스워드리스',
+          '비밀번호 관리', 'SAML 애플리케이션을 통한 SSO', '타사 IdP를 통한 SSO',
+          '복수 사용자 승인 체계 요청', '복수 사용자 승인 체계 설정',
+        ],
+      },
+      {
+        name: '액세스 및 데이터 관리',
+        children: ['API 관리', '컨텍스트 인식 액세스', '데이터 분류', '라벨 관리자', '데이터 보호', 'Google 세션 제어', 'Google Cloud 세션 관리'],
+      },
     ],
   },
 

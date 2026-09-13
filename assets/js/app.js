@@ -3,7 +3,7 @@ import { SECTIONS, visibleSections, navTree, flatPaths, firstLeaf, leafOf, findS
 import homeView from './views/home.js';
 import directoryViews from './views/directory.js';
 import miscViews from './views/misc.js';
-import chromeViews from './views/chrome.js';
+import chromeViews, { SAMPLE_APPS } from './views/chrome.js';
 import appsViews from './views/apps.js';
 import genaiViews from './views/genai.js';
 
@@ -12,31 +12,16 @@ const STORE_KEY = 'admin-sim:v5';
 const POLICY_KEY = 'admin-sim:policies';
 
 const SEED = {
+  // 실제 콘솔을 새로 개설했을 때처럼 최상위 조직 단위와 관리자 계정만 둡니다.
   orgs: [
-    { id: 'org-root', name: '연습학교', parent: '', description: '연습학교 최상위 조직' },
-    { id: 'org-admin', name: '1.관리자', parent: '연습학교', description: '관리자 계정' },
-    { id: 'org-teachers', name: '2.교원', parent: '연습학교', description: '교사 계정' },
-    { id: 'org-students', name: '3.학생', parent: '연습학교', description: '학생 계정' },
-    { id: 'org-students-1', name: '1학년', parent: '3.학생', description: '-' },
-    { id: 'org-students-2', name: '2학년', parent: '3.학생', description: '-' },
-    { id: 'org-students-3', name: '3학년', parent: '3.학생', description: '-' },
-    { id: 'org-tablets', name: '4.태블릿기기', parent: '연습학교', description: '태블릿 기기 전용' },
-    { id: 'org-tablets-t', name: '교사용 태블릿', parent: '4.태블릿기기', description: '-' },
-    { id: 'org-tablets-s', name: '학생용 태블릿', parent: '4.태블릿기기', description: '-' },
-    { id: 'org-chromebooks', name: '5.크롬북(삭제금지)', parent: '연습학교', description: '크롬북 기기 전용 · 삭제 금지' },
-    { id: 'org-chromebooks-1', name: '크롬북 1학년', parent: '5.크롬북(삭제금지)', description: '-' },
-    { id: 'org-chromebooks-2', name: '크롬북 2학년', parent: '5.크롬북(삭제금지)', description: '-' },
-    { id: 'org-chromebooks-3', name: '크롬북 3학년', parent: '5.크롬북(삭제금지)', description: '-' },
+    { id: 'org-root', name: '연습학교', parent: '', description: '연습학교' },
   ],
   users: [
-    { id: 'admin-locked', firstName: '관리자', lastName: '최고', email: 'admin@school.sen.ms.kr', org: '1.관리자', status: '보호됨' },
-    { id: 'u-teacher1', firstName: '수진', lastName: '이', email: 'teacher01@school.sen.ms.kr', org: '2.교원', status: '활성' },
-    { id: 'u-student1', firstName: '하늘', lastName: '김', email: 'student01@school.sen.ms.kr', org: '3.학생', status: '활성' },
+    { id: 'admin-locked', firstName: '관리자', lastName: '최고', email: 'admin@school.sen.ms.kr', org: '연습학교', status: '활성' },
   ],
-  groups: [
-    { id: 'g-all', name: '연습학교', email: 'all@school.sen.ms.kr', description: 'Default audience with all users in your organization (updated automatically)', memberCount: 1372, members: [] },
-    { id: 'g-teachers', name: '연습 교사그룹', email: 'teachers@school.sen.ms.kr', description: '', memberCount: 1, members: ['admin-locked'] },
-  ],
+  groups: [],
+  apps: [],
+  records: {},
 };
 
 const PROFILES = {
@@ -55,6 +40,8 @@ const state = {
   orgs: SEED.orgs.slice(),
   users: SEED.users.slice(),
   groups: SEED.groups.slice(),
+  apps: SEED.apps.map((a) => ({ ...a })),
+  records: {},
   local: {},
   expanded: {},
 };
@@ -70,6 +57,8 @@ function load() {
       state.orgs = saved.orgs || state.orgs;
       state.users = saved.users || state.users;
       state.groups = saved.groups || state.groups;
+      state.apps = saved.apps || state.apps;
+      state.records = saved.records || {};
     }
     policies = JSON.parse(localStorage.getItem(POLICY_KEY) || '{}');
   } catch { /* 저장 값이 깨졌으면 기본값 사용 */ }
@@ -77,7 +66,7 @@ function load() {
 function save() {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify({
-      mode: state.mode, signedIn: state.signedIn, orgs: state.orgs, users: state.users, groups: state.groups,
+      mode: state.mode, signedIn: state.signedIn, orgs: state.orgs, users: state.users, groups: state.groups, apps: state.apps, records: state.records,
     }));
   } catch { /* 저장 실패는 연습에 영향 없음 */ }
 }
@@ -131,6 +120,90 @@ function ouPicker(selected) {
       </button>`).join('')}
   </aside>`;
 }
+/* ---------------- 추가·삭제가 가능한 목록(컬렉션) ---------------- */
+/** 화면이 렌더될 때 등록되는 스키마 — 추가 다이얼로그가 이걸 보고 양식을 만든다 */
+const SCHEMAS = {};
+
+function collection(key) {
+  return state.records[key] || [];
+}
+
+/** 목록 화면을 그리지 않고 추가 양식만 등록한다(다른 화면의 '추가' 버튼용) */
+function defineList(key, def) {
+  SCHEMAS[key] = def;
+  return '';
+}
+
+function fieldInput(field) {
+  const id = `f-${field.name}`;
+  if (field.type === 'select') {
+    const options = typeof field.options === 'function' ? field.options() : (field.options || []);
+    return `<select id="${id}" name="${esc(field.name)}">${options.map((o) => `<option>${esc(o)}</option>`).join('')}</select>`;
+  }
+  if (field.type === 'textarea') {
+    return `<textarea id="${id}" name="${esc(field.name)}" placeholder="${esc(field.placeholder || '')}"></textarea>`;
+  }
+  if (field.type === 'checkbox') {
+    return `<label class="switch-line"><input type="checkbox" name="${esc(field.name)}" value="예"><span><strong>${esc(field.checkboxLabel || field.label)}</strong></span></label>`;
+  }
+  return `<input id="${id}" name="${esc(field.name)}" type="${esc(field.type || 'text')}"
+    ${field.required ? 'required' : ''} placeholder="${esc(field.placeholder || '')}" autocomplete="off">`;
+}
+
+/**
+ * 실제 콘솔의 목록 화면 한 장을 그린다.
+ * key 로 구분되는 컬렉션에 항목을 추가/삭제할 수 있고, 내용은 브라우저에 저장된다.
+ */
+function listPage(options) {
+  const {
+    key, title, breadcrumb, description,
+    columns = [], fields = [], addLabel = '추가',
+    emptyTitle, emptyHint, fab = true, toolbar = '', note = '',
+    ouPicker: withOu = false,
+  } = options;
+  SCHEMAS[key] = { title, addLabel, fields, columns };
+  const rows = collection(key);
+  const table = `<div class="data-panel flat list-panel">
+      <div class="action-strip">
+        <strong>${esc(title)} | ${rows.length ? `${rows.length}개 표시` : '결과가 없음'}</strong>
+        <button data-add="${esc(key)}">${esc(addLabel)}</button>
+        <button data-toast="다운로드">다운로드</button>
+      </div>
+      <div class="filter-strip"><button data-toast="필터 추가">${icon('add', 17)} 필터 추가</button></div>
+      ${rows.length ? `<div class="table-wrap"><table class="admin-table">
+        <thead><tr>${columns.map((c) => `<th>${esc(c.label)}</th>`).join('')}<th class="col-actions"></th></tr></thead>
+        <tbody>${rows.map((row) => `<tr>
+          ${columns.map((c, i) => `<td>${i === 0
+            ? `<b class="blue-text">${esc(row[c.key] || '—')}</b>`
+            : (c.editable
+              ? editable({ scope: `list:${key}`, name: `${row[c.key] || row.id} · ${c.label}`, value: row[c.key] || '', options: c.options, section: title })
+              : esc(row[c.key] || '—'))}</td>`).join('')}
+          <td class="col-actions"><button class="row-action danger" data-action="delete-record" data-key="${esc(key)}" data-id="${esc(row.id)}" title="삭제">${icon('delete', 18)}</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`
+      : `<div class="list-empty">
+          ${icon('inbox', 40)}
+          <strong>${esc(emptyTitle || '아직 등록된 항목이 없습니다')}</strong>
+          <p>${esc(emptyHint || `‘${addLabel}’를 눌러 직접 만들어 보세요. 연습 내용은 이 브라우저에만 저장됩니다.`)}</p>
+          <button class="primary-button" data-add="${esc(key)}">${icon('add', 18)} ${esc(addLabel)}</button>
+        </div>`}
+      ${rows.length ? `<div class="table-footer"><span>페이지당 행 수: 20</span><span>1-${rows.length} / ${rows.length}</span></div>` : ''}
+      ${fab ? `<button class="fab-yellow" data-add="${esc(key)}" aria-label="${esc(addLabel)}" title="${esc(addLabel)}">${icon('add', 24)}</button>` : ''}
+    </div>`;
+
+  return `<div class="section-page wide admin-page">
+    ${crumb(breadcrumb ? `${breadcrumb} > ${title}` : title)}
+    <div class="page-title-row">
+      <div><h1>${esc(title)}</h1>${description ? `<p class="page-desc">${esc(description)}</p>` : ''}</div>
+      <button class="primary-button" data-add="${esc(key)}">${icon('add', 18)} ${esc(addLabel)}</button>
+    </div>
+    ${toolbar}
+    ${withOu ? `<div class="directory-layout">${ouPicker(currentOu())}${table}</div>` : table}
+    ${note ? `<p class="page-desc" style="margin-top:14px">${note}</p>` : ''}
+  </div>`;
+}
+
+/** 예전 방식(읽기 전용 표) — 통계·안내용 화면에서만 사용 */
 function adminListPage({ title, breadcrumb, description, columns = [], rows = [], actionLabel, emptyHint }) {
   return `<div class="section-page wide admin-page">
     ${crumb(breadcrumb ? `${breadcrumb} > ${title}` : title)}
@@ -147,6 +220,7 @@ function adminListPage({ title, breadcrumb, description, columns = [], rows = []
     </div>
   </div>`;
 }
+
 /* ---------------- 어디서나 수정 가능한 값 ---------------- */
 /** 저장된 값이 있으면 그 값, 없으면 기본값 */
 function setting(scope, name, fallback = '') {
@@ -204,6 +278,9 @@ const ctx = {
   appliedOu,
   ouPicker,
   adminListPage,
+  listPage,
+  collection,
+  defineList,
   policyTable,
   currentOu,
   orgRows,
@@ -479,6 +556,89 @@ function renderModal() {
           <button type="button" class="filled" data-action="reset-confirm">초기화</button>
         </div>
       </div>`);
+  } else if (kind === 'record') {
+    const schema = SCHEMAS[options.key];
+    if (!schema) { root.innerHTML = ''; return; }
+    root.innerHTML = modalShell(schema.addLabel || '추가', `${schema.title} · ${currentOu()}에 추가됩니다.`, `
+      <form class="practice-form" data-form="record" data-key="${esc(options.key)}">
+        ${schema.fields.map((f) => (f.type === 'checkbox'
+          ? fieldInput(f)
+          : `<label><span>${esc(f.label)}${f.required ? ' *' : ''}</span>${fieldInput(f)}${f.help ? `<small class="field-help">${esc(f.help)}</small>` : ''}</label>`)).join('')}
+        <div class="form-actions">
+          <button type="button" data-close-modal>취소</button>
+          <button type="submit">${esc(schema.addLabel || '추가')}</button>
+        </div>
+      </form>`);
+  } else if (kind === 'app-source') {
+    root.innerHTML = `<div class="modal-backdrop" data-backdrop>
+      <section class="modal app-source" role="dialog" aria-modal="true">
+        <header>
+          <div><p class="eyebrow">연습 모드</p><h2>앱 및 확장 프로그램 추가</h2><p>어떤 방법으로 추가할지 선택하세요.</p></div>
+          <button class="icon-button" data-close-modal aria-label="닫기">${icon('close', 22)}</button>
+        </header>
+        <div class="source-list">
+          <button data-modal="app" data-source="webstore">
+            <span class="source-icon store">${icon('apps', 22)}</span>
+            <span><strong>Chrome 웹 스토어에서 추가</strong><small>이름으로 검색해 앱·확장 프로그램을 배포합니다</small></span>
+            ${icon('chevron_right', 20)}
+          </button>
+          <button data-modal="app" data-source="url">
+            <span class="source-icon url">${icon('language', 22)}</span>
+            <span><strong>URL로 추가</strong><small>웹사이트를 웹앱 형태로 기기에 설치합니다</small></span>
+            ${icon('chevron_right', 20)}
+          </button>
+          <button data-modal="app" data-source="id">
+            <span class="source-icon id">${icon('build', 22)}</span>
+            <span><strong>ID로 추가</strong><small>확장 프로그램 ID와 업데이트 URL을 직접 입력합니다</small></span>
+            ${icon('chevron_right', 20)}
+          </button>
+          <button data-modal="app" data-source="play">
+            <span class="source-icon play">${icon('phone_android', 22)}</span>
+            <span><strong>Android 앱 추가</strong><small>Managed Google Play에서 앱을 선택합니다</small></span>
+            ${icon('chevron_right', 20)}
+          </button>
+        </div>
+      </section>
+    </div>`;
+  } else if (kind === 'app') {
+    const source = options.source || 'webstore';
+    const SOURCES = {
+      webstore: { title: 'Chrome 웹 스토어에서 추가', hint: '앱 이름으로 검색합니다. 연습용이므로 실제 스토어에 연결되지는 않습니다.', idLabel: '앱 ID', idPlaceholder: '예: aapbdbdomjkkjkaonfhkkikfgjllcleb', suggestions: ['Kahoot!', 'Padlet', 'Quizizz', '두클래스', 'Nearpod', 'Pear Deck', 'Google Keep', 'Adobe Express'] },
+      url: { title: 'URL로 추가', hint: '입력한 주소가 웹앱으로 설치됩니다.', idLabel: 'URL', idPlaceholder: 'https://', suggestions: [] },
+      id: { title: 'ID로 추가', hint: '확장 프로그램 ID 32자를 입력합니다.', idLabel: '확장 프로그램 ID', idPlaceholder: '예: nnckehldicaciogcbchegobnafnjkcne', suggestions: [] },
+      play: {
+        title: 'Android 앱 추가',
+        hint: 'Managed Google Play에 등록된 Google 앱 중에서 선택합니다.',
+        idLabel: '패키지 이름',
+        idPlaceholder: '앱을 선택하면 자동으로 채워집니다',
+        suggestions: [],
+        select: ['Google 문서', 'Google 스프레드시트', 'Google 프레젠테이션', 'Google 설문지', 'Google Classroom', 'Google 드라이브', 'Gmail', 'Google 캘린더', 'Google Keep', 'Google Meet', 'YouTube'],
+      },
+    };
+    const info = SOURCES[source] || SOURCES.webstore;
+    root.innerHTML = modalShell(info.title, info.hint, `
+      <form class="practice-form" data-form="app" data-source="${esc(source)}">
+        <label><span>앱 이름 *</span>${info.select
+          ? `<select name="name" required autofocus>${info.select.map((s) => `<option>${esc(s)}</option>`).join('')}</select>`
+          : `<input name="name" required autofocus autocomplete="off" list="app-suggestions" placeholder="예: Kahoot!">`}</label>
+        ${info.suggestions.length ? `<datalist id="app-suggestions">${info.suggestions.map((s) => `<option value="${esc(s)}"></option>`).join('')}</datalist>` : ''}
+        <label><span>${esc(info.idLabel)}</span><input name="appId" autocomplete="off" placeholder="${esc(info.idPlaceholder)}"></label>
+        <label><span>설치 정책</span>
+          <select name="policy">
+            <option>설치 허용</option>
+            <option>강제 설치</option>
+            <option>설치 및 고정</option>
+            <option>차단</option>
+          </select>
+        </label>
+        <label><span>적용 조직 단위</span>
+          <select name="ou">${state.orgs.map((o) => `<option ${o.name === currentOu() ? 'selected' : ''}>${esc(o.name)}</option>`).join('')}</select>
+        </label>
+        <div class="form-actions">
+          <button type="button" data-close-modal>취소</button>
+          <button type="submit">추가</button>
+        </div>
+      </form>`);
   } else if (kind === 'policy') {
     const { scope, name, current, options: opts = [] } = options;
     root.innerHTML = modalShell(options.displayName || name, `${options.sectionLabel || '설정'} · ${currentOu()}에 적용`, `
@@ -499,7 +659,7 @@ function renderModal() {
 
 /* ---------------- 이벤트 위임 ---------------- */
 document.addEventListener('click', (event) => {
-  const target = event.target.closest('[data-signin],[data-mode],[data-nav],[data-toast],[data-set],[data-policy],[data-edit],[data-modal],[data-close-modal],[data-backdrop],[data-close-toast],[data-policy-reset],[data-action]');
+  const target = event.target.closest('[data-signin],[data-mode],[data-nav],[data-toast],[data-set],[data-policy],[data-edit],[data-modal],[data-add],[data-close-modal],[data-backdrop],[data-close-toast],[data-policy-reset],[data-action]');
   if (!target) return;
 
   if (target.hasAttribute('data-signin')) {
@@ -535,8 +695,13 @@ document.addEventListener('click', (event) => {
     navigate(sectionId, link);
     return;
   }
+  if (target.hasAttribute('data-add')) {
+    event.preventDefault();
+    openModal('record', { key: target.getAttribute('data-add') });
+    return;
+  }
   if (target.hasAttribute('data-modal')) {
-    openModal(target.getAttribute('data-modal'), { parent: target.dataset.parent });
+    openModal(target.getAttribute('data-modal'), { parent: target.dataset.parent, source: target.dataset.source });
     return;
   }
   if (target.hasAttribute('data-edit')) {
@@ -604,12 +769,33 @@ function handleAction(action, target) {
     state.orgs = SEED.orgs.map((o) => ({ ...o }));
     state.users = SEED.users.map((u) => ({ ...u }));
     state.groups = SEED.groups.map((g) => ({ ...g }));
+    state.apps = SEED.apps.map((a) => ({ ...a }));
+    state.records = {};
     state.local = {};
     try { localStorage.removeItem(POLICY_KEY); } catch { /* noop */ }
     save();
     closeModal();
     navigate('home', '');
     toast('연습 데이터를 처음 상태로 되돌렸습니다.');
+    return;
+  }
+  if (action === 'delete-record') {
+    const key = target.dataset.key;
+    const id = target.dataset.id;
+    const row = (state.records[key] || []).find((r) => r.id === id);
+    state.records[key] = (state.records[key] || []).filter((r) => r.id !== id);
+    save();
+    toast(row ? `‘${Object.values(row)[1] || '항목'}’을(를) 삭제했습니다.` : '항목을 삭제했습니다.');
+    renderView();
+    return;
+  }
+  if (action === 'delete-app') {
+    const id = target.dataset.id;
+    const app = state.apps.find((a) => a.id === id);
+    state.apps = state.apps.filter((a) => a.id !== id);
+    save();
+    toast(app ? `‘${app.name}’을(를) 목록에서 삭제했습니다.` : '앱을 삭제했습니다.');
+    renderView();
     return;
   }
   if (action === 'signout') {
@@ -687,6 +873,52 @@ document.addEventListener('submit', (event) => {
       memberCount: members.length,
     });
     toast(`그룹 “${address}@school.sen.ms.kr”을 만들었습니다.`);
+  } else if (kind === 'app') {
+    const name = String(data.get('name') || '').trim();
+    if (!name) return;
+    const source = form.dataset.source;
+    const typed = String(data.get('appId') || '').trim();
+    const PLAY_PACKAGES = {
+      'Google 문서': 'com.google.android.apps.docs.editors.docs',
+      'Google 스프레드시트': 'com.google.android.apps.docs.editors.sheets',
+      'Google 프레젠테이션': 'com.google.android.apps.docs.editors.slides',
+      'Google 설문지': 'com.google.android.apps.forms',
+      'Google Classroom': 'com.google.android.apps.classroom',
+      'Google 드라이브': 'com.google.android.apps.docs',
+      'Gmail': 'com.google.android.gm',
+      'Google 캘린더': 'com.google.android.calendar',
+      'Google Keep': 'com.google.android.keep',
+      'Google Meet': 'com.google.android.apps.tachyon',
+      'YouTube': 'com.google.android.youtube',
+    };
+    const fallbackId = source === 'play'
+      ? (PLAY_PACKAGES[name] || 'com.google.android.app')
+      : ({
+        url: 'https://example.org',
+        id: 'custom-extension-id',
+        webstore: 'chrome-webstore-app',
+      }[source] || 'chrome-webstore-app');
+    state.apps = state.apps.concat({
+      name,
+      id: typed || `${fallbackId}-${state.apps.length + 1}`,
+      policy: String(data.get('policy') || '설치 허용'),
+      pinned: '고정되지 않음',
+      ou: String(data.get('ou') || currentOu()),
+      custom: true,
+    });
+    toast(`‘${name}’을(를) ${String(data.get('ou') || currentOu())} 조직 단위에 추가했습니다.`);
+  } else if (kind === 'record') {
+    const key = form.dataset.key;
+    const schema = SCHEMAS[key] || { fields: [] };
+    const row = { id: uid() };
+    schema.fields.forEach((f) => {
+      row[f.name] = f.type === 'checkbox'
+        ? (data.get(f.name) ? '예' : '아니요')
+        : String(data.get(f.name) || '').trim();
+    });
+    const label = row[schema.fields[0]?.name] || '항목';
+    state.records[key] = (state.records[key] || []).concat(row);
+    toast(`‘${label}’을(를) 추가했습니다.`);
   } else if (kind === 'policy') {
     const scope = form.dataset.scope;
     const name = form.dataset.name;

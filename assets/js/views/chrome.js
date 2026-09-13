@@ -12,8 +12,8 @@ const CATALOG_BY_TAB = {
   '관리 게스트 세션 설정': chromeGuestSessionCategories,
 };
 
-/** 원본 app/page.tsx 의 SAMPLE_APPS 상수 (그대로 복사). */
-const SAMPLE_APPS = [
+/** 앱 및 확장 프로그램 목록의 초기 데이터 (app.js 가 state.apps 로 복사해 관리) */
+export const SAMPLE_APPS = [
   { name: 'Padlet', id: 'com.wallwisher.Padlet', policy: '설치 허용', pinned: 'warn' },
   { name: 'kr.smobile.app.t3', id: 'kr.smobile.app.t3', policy: '설치 허용', pinned: '' },
   { name: 'Kami for Google Chrome™', id: 'kami', policy: '강제 설치', pinned: '고정되지 않음' },
@@ -122,7 +122,8 @@ function renderApps(ctx) {
       ${ctx.policyTable({ scope: 'chrome-apps-ext', categories: chromeAppsExtensionSettingsCategories })}
     </div>`;
   } else {
-    const rows = SAMPLE_APPS.map((a) => {
+    const appList = ctx.state.apps && ctx.state.apps.length ? ctx.state.apps : SAMPLE_APPS;
+    const rows = appList.map((a) => {
       const pinned = a.pinned === 'warn'
         ? `<span class="warn-icon">${ctx.icon('warning', 14)}</span>`
         : ctx.esc(a.pinned || '—');
@@ -133,6 +134,9 @@ function renderApps(ctx) {
           options: ['설치 허용', '강제 설치', '설치 및 고정', '차단', '삭제'] })}</td>
         <td>${a.pinned === 'warn' ? pinned : ctx.editable({ scope, name: `${a.name} · 고정 승인 버전`, value: a.pinned || '고정되지 않음', section: '앱 및 확장 프로그램',
           options: ['고정되지 않음', '최신 버전으로 고정', '이전 버전 유지'] })}</td>
+        <td class="col-actions">
+          <button class="row-action danger" data-action="delete-app" data-id="${ctx.esc(a.id)}" title="목록에서 삭제">${ctx.icon('delete', 18)}</button>
+        </td>
       </tr>`;
     }).join('');
 
@@ -143,11 +147,11 @@ function renderApps(ctx) {
       })}</div>
       <div class="filter-strip"><button data-toast="필터 검색 또는 추가">${ctx.icon('add', 17)} 필터 검색 또는 추가</button></div>
       <div class="table-wrap"><table class="admin-table">
-        <thead><tr><th>이름</th><th>설치 정책</th><th>고정 승인 버전</th></tr></thead>
+        <thead><tr><th>이름</th><th>설치 정책</th><th>고정 승인 버전</th><th class="col-actions"></th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
-      <div class="table-footer"><span>페이지당 행 수: 10</span><span>2페이지 중 1</span></div>
-      <button class="fab-yellow" data-toast="앱 추가" aria-label="추가">${ctx.icon('add', 24)}</button>`;
+      <div class="table-footer"><span>페이지당 행 수: 10</span><span>${appList.length}개 중 1-${appList.length}</span></div>
+      <button class="fab-yellow" data-modal="app-source" aria-label="앱 및 확장 프로그램 추가" title="앱 및 확장 프로그램 추가">${ctx.icon('add', 24)}</button>`;
   }
 
   return `<div class="section-page wide admin-page apps-ext-page">
@@ -192,49 +196,108 @@ function renderSettings(ctx) {
 
 /* ------------------------------------------ 단순 목록형 하위 메뉴들 */
 
-const LIST_PAGES = {
+const OU_FIELD_OPTIONS = ['연습학교', '1.관리자', '2.교원', '3.학생', '4.태블릿기기', '5.크롬북(삭제금지)'];
+
+/** 추가·삭제가 가능한 목록 화면(ctx.listPage) 구성 */
+const COLLECTION_PAGES = {
   '관리 브라우저': {
+    key: 'managed-browsers',
     title: '관리 브라우저',
     breadcrumb: 'Chrome 브라우저',
     description: '클라우드에 등록된 브라우저를 확인합니다.',
-    columns: ['기기 이름', '버전', '마지막 활동', '상태'],
-    rows: [['—', '—', '—', '활성 브라우저 없음']],
-    actionLabel: '브라우저 등록',
-    emptyHint: '아직 등록된 관리 브라우저가 없습니다.',
+    addLabel: '브라우저 등록',
+    emptyTitle: '아직 등록된 관리 브라우저가 없습니다',
+    emptyHint: '‘브라우저 등록’을 눌러 브라우저를 직접 등록해 보세요. 연습 내용은 이 브라우저에만 저장됩니다.',
+    columns: [
+      { key: 'name', label: '기기 이름' },
+      { key: 'version', label: '버전' },
+      { key: 'lastActivity', label: '마지막 활동' },
+      { key: 'status', label: '상태', editable: true, options: ['활성', '비활성'] },
+    ],
+    fields: [
+      { name: 'name', label: '기기 이름', required: true, placeholder: '예: 교무실-PC-01' },
+      { name: 'version', label: 'Chrome 버전', placeholder: '예: 154.0.7204.49' },
+      { name: 'lastActivity', label: '마지막 활동', placeholder: '예: 2026. 9. 12.' },
+      { name: 'status', label: '상태', type: 'select', options: ['활성', '비활성'] },
+    ],
   },
   '관리 프로필': {
+    key: 'managed-profiles',
     title: '관리 프로필',
     breadcrumb: 'Chrome 브라우저',
     description: '관리되는 사용자 프로필을 확인합니다.',
-    columns: ['사용자', '브라우저', '마지막 동기화', '상태'],
-    rows: [['—', '—', '—', '활성 프로필 없음']],
-    actionLabel: '프로필 보기',
-    emptyHint: '관리 프로필이 아직 없습니다.',
+    addLabel: '프로필 추가',
+    emptyTitle: '관리 프로필이 아직 없습니다',
+    columns: [
+      { key: 'user', label: '사용자' },
+      { key: 'browser', label: '브라우저' },
+      { key: 'lastSync', label: '마지막 동기화' },
+      { key: 'status', label: '상태', editable: true, options: ['활성', '비활성'] },
+    ],
+    fields: [
+      { name: 'user', label: '사용자', required: true, placeholder: '예: teacher01@school.sen.ms.kr' },
+      { name: 'browser', label: '브라우저', placeholder: '예: Chrome 154 (Windows)' },
+      { name: 'status', label: '상태', type: 'select', options: ['활성', '비활성'] },
+    ],
   },
   '커스텀 구성': {
+    key: 'custom-configs',
     title: '커스텀 구성',
     breadcrumb: 'Chrome 브라우저',
     description: 'JSON 기반 맞춤 정책을 관리합니다.',
-    columns: ['이름', '적용 대상', '수정일', '상태'],
-    rows: [['학교 기본 정책', '연습학교', '2026-03-01', '초안']],
-    actionLabel: '구성 만들기',
+    addLabel: '구성 만들기',
+    columns: [
+      { key: 'name', label: '이름' },
+      { key: 'target', label: '적용 대상' },
+      { key: 'modified', label: '수정일' },
+      { key: 'status', label: '상태', editable: true, options: ['초안', '게시됨'] },
+    ],
+    fields: [
+      { name: 'name', label: '이름', required: true, placeholder: '예: 학교 기본 정책' },
+      { name: 'target', label: '적용 대상', type: 'select', options: OU_FIELD_OPTIONS },
+      { name: 'modified', label: '수정일', type: 'date' },
+      { name: 'json', label: 'JSON 내용', type: 'textarea', placeholder: '{ "HomepageLocation": "https://school.sen.ms.kr" }' },
+    ],
   },
   '토큰': {
+    key: 'enroll-tokens',
     title: '토큰',
     breadcrumb: 'Chrome 브라우저',
     description: '브라우저 등록 토큰을 발급·관리합니다.',
-    columns: ['토큰 이름', '생성일', '만료', '사용'],
-    rows: [['연습-등록-토큰', '2026-01-12', '—', '0']],
-    actionLabel: '토큰 만들기',
+    addLabel: '토큰 만들기',
+    columns: [
+      { key: 'name', label: '토큰 이름' },
+      { key: 'created', label: '생성일' },
+      { key: 'expires', label: '만료' },
+      { key: 'uses', label: '사용' },
+    ],
+    fields: [
+      { name: 'name', label: '토큰 이름', required: true, placeholder: '예: 연습-등록-토큰' },
+      { name: 'created', label: '생성일', type: 'date' },
+      { name: 'expires', label: '만료일', type: 'date' },
+    ],
   },
   '커넥터': {
+    key: 'connectors',
     title: '커넥터',
     breadcrumb: 'Chrome 브라우저',
     description: '보안·보고 커넥터를 연결합니다.',
-    columns: ['커넥터', '상태', '마지막 동기화', '설명'],
-    rows: [['Chrome Enterprise 커넥터', '사용 안 함', '—', '데이터 손실 방지']],
-    actionLabel: '커넥터 추가',
+    addLabel: '커넥터 추가',
+    columns: [
+      { key: 'name', label: '커넥터' },
+      { key: 'status', label: '상태', editable: true, options: ['사용', '사용 안 함'] },
+      { key: 'lastSync', label: '마지막 동기화' },
+      { key: 'desc', label: '설명' },
+    ],
+    fields: [
+      { name: 'name', label: '커넥터 이름', required: true, placeholder: '예: Chrome Enterprise 커넥터' },
+      { name: 'status', label: '상태', type: 'select', options: ['사용', '사용 안 함'] },
+      { name: 'desc', label: '설명', placeholder: '예: 데이터 손실 방지' },
+    ],
   },
+};
+
+const LIST_PAGES = {
   '보고서': {
     title: '보고서',
     breadcrumb: 'Chrome 브라우저',
@@ -250,16 +313,21 @@ function listView(link) {
   return { render: (ctx) => ctx.adminListPage(config) };
 }
 
+function collectionView(link) {
+  const config = COLLECTION_PAGES[link];
+  return { render: (ctx) => ctx.listPage(config) };
+}
+
 // 키 순서 = 사이드바 링크 순서
 export default {
   '개요': { render: renderOverview },
   '설정 가이드': { render: renderSetupGuide },
-  '관리 브라우저': listView('관리 브라우저'),
-  '관리 프로필': listView('관리 프로필'),
+  '관리 브라우저': collectionView('관리 브라우저'),
+  '관리 프로필': collectionView('관리 프로필'),
   '설정': { render: renderSettings },
-  '커스텀 구성': listView('커스텀 구성'),
-  '토큰': listView('토큰'),
+  '커스텀 구성': collectionView('커스텀 구성'),
+  '토큰': collectionView('토큰'),
   '앱 및 확장 프로그램': { render: renderApps },
-  '커넥터': listView('커넥터'),
+  '커넥터': collectionView('커넥터'),
   '보고서': listView('보고서'),
 };

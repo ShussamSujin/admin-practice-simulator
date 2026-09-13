@@ -539,57 +539,52 @@ function additionalServices(ctx) {
 /* ── Google Workspace Marketplace 앱 (원본 MarketplaceAppsView) ─ */
 
 function marketplaceApps(ctx) {
-  const selectedOu = typeof ctx.currentOu === 'function' ? ctx.currentOu() : currentOu(ctx);
-  return `<div class="section-page wide admin-page apps-section-page">`
-    + crumb(ctx, '앱 > Google Workspace Marketplace 앱 > 앱 목록')
-    + `<div class="page-title-row"><div><h1>Google Workspace Marketplace 앱</h1><p>Marketplace 앱 배포와 허용 목록을 관리합니다.</p></div>`
-      + `<div class="btn-row">`
-      + `<button class="outline-button" data-toast="앱 설치">앱 설치</button>`
-      + `<button class="outline-button" data-toast="허용 목록">허용 목록</button>`
-      + `<button class="primary-button" data-toast="사용자 설치 설정">사용자 설치 설정</button>`
-      + `</div></div>`
-    + `<div class="apps-layout">`
-      + ouPicker(ctx, selectedOu)
-      + `<section class="data-panel apps-panel">`
-        + `<div class="action-strip"><strong>앱 목록 | ${MARKETPLACE_APPS.length}개 · ${ctx.esc(selectedOu)}</strong></div>`
-        + `<div class="table-wrap"><table class="admin-table">`
-          + `<thead><tr><th>앱</th><th>게시자</th><th>배포</th><th>사용자</th><th></th></tr></thead>`
-          + `<tbody>`
-          + MARKETPLACE_APPS.map(a =>
-              `<tr><td><b class="blue-text">${ctx.esc(a.name)}</b></td>`
-              + `<td>${ctx.esc(a.publisher)}</td>`
-              + `<td>${ed(ctx, `Marketplace 앱 · ${a.name} · 배포`, a.status, MARKETPLACE_STATUS_OPTIONS)}</td>`
-              + `<td>${ed(ctx, `Marketplace 앱 · ${a.name} · 사용자`, a.users, MARKETPLACE_USER_OPTIONS, '')}</td>`
-              + `<td><button class="link-btn" data-toast="${ctx.esc(a.name)} 배포">배포</button> `
-              + `<button class="link-btn" data-toast="${ctx.esc(a.name)} 세부정보">세부정보</button></td></tr>`).join('')
-          + `</tbody></table></div>`
-      + `</section>`
-    + `</div>`
-    + `</div>`;
+  return ctx.listPage({
+    key: 'marketplace-apps',
+    title: 'Google Workspace Marketplace 앱',
+    breadcrumb: '앱',
+    description: 'Marketplace 앱 배포와 허용 목록을 관리합니다.',
+    addLabel: '앱 설치',
+    ouPicker: true,
+    emptyTitle: '아직 설치한 Marketplace 앱이 없습니다',
+    columns: [
+      { key: 'name', label: '앱 이름' },
+      { key: 'publisher', label: '게시자' },
+      { key: 'status', label: '배포', editable: true, options: MARKETPLACE_STATUS_OPTIONS },
+      { key: 'users', label: '사용자' },
+    ],
+    fields: [
+      { name: 'name', label: '앱 이름', required: true, placeholder: '예: Kahoot!' },
+      { name: 'publisher', label: '게시자', placeholder: '예: Kahoot!' },
+      { name: 'status', label: '배포', type: 'select', options: MARKETPLACE_STATUS_OPTIONS },
+      { name: 'users', label: '사용자', type: 'select', options: MARKETPLACE_USER_OPTIONS },
+    ],
+  });
 }
 
 /* ── 웹 및 모바일 앱 (원본 WebMobileAppsView) ───────────────── */
 
 function webMobileApps(ctx) {
-  const rows = [
-    ['연습학교 LMS', 'SAML', '사용', '전체'],
-    ['도서관 검색', 'OIDC', '사용', '교원·학생'],
-    ['학부모 알림', 'SAML', '사용 안함', '—'],
-  ];
-  return `<div class="section-page wide admin-page apps-section-page">`
-    + crumb(ctx, '앱 > 웹 및 모바일 앱')
-    + `<div class="page-title-row"><div><h1>웹 및 모바일 앱</h1><p>SAML/OIDC 웹 앱을 관리합니다.</p></div>`
-      + `<button class="primary-button" data-toast="앱 추가">앱 추가</button></div>`
-    + `<div class="data-panel flat"><table class="admin-table">`
-      + `<thead><tr><th>앱</th><th>유형</th><th>상태</th><th>사용자</th></tr></thead>`
-      + `<tbody>`
-      + rows.map(r =>
-          `<tr><td><b class="blue-text">${ctx.esc(r[0])}</b></td>`
-          + `<td>${ed(ctx, `웹 및 모바일 앱 · ${r[0]} · 유형`, r[1], ['SAML', 'OIDC', '비밀번호 저장(SSO 아님)'], '')}</td>`
-          + `<td>${ed(ctx, `웹 및 모바일 앱 · ${r[0]} · 상태`, r[2], ['사용', '사용 안함', '일부 조직 단위에만 사용'])}</td>`
-          + `<td>${ed(ctx, `웹 및 모바일 앱 · ${r[0]} · 사용자`, r[3], ['전체', '교원', '학생', '교원·학생', '—'], '')}</td></tr>`).join('')
-      + `</tbody></table></div>`
-    + `</div>`;
+  return ctx.listPage({
+    key: 'web-mobile-apps',
+    title: '웹 및 모바일 앱',
+    breadcrumb: '앱',
+    description: 'SAML/OIDC 웹 앱을 관리합니다.',
+    addLabel: '앱 추가',
+    emptyTitle: '아직 추가한 웹·모바일 앱이 없습니다',
+    columns: [
+      { key: 'name', label: '이름' },
+      { key: 'type', label: '유형', editable: true, options: ['웹 앱', 'Android 앱', 'iOS 앱'] },
+      { key: 'status', label: '상태', editable: true, options: ['사용', '사용 안함', '일부 조직 단위에만 사용'] },
+      { key: 'users', label: '사용자' },
+    ],
+    fields: [
+      { name: 'name', label: '앱 이름', required: true, placeholder: '예: 연습학교 LMS' },
+      { name: 'type', label: '유형', type: 'select', options: ['웹 앱', 'Android 앱', 'iOS 앱'] },
+      { name: 'status', label: '상태', type: 'select', options: ['사용', '사용 안함', '일부 조직 단위에만 사용'] },
+      { name: 'users', label: '사용자', type: 'select', options: ['전체', '교원', '학생', '교원·학생'] },
+    ],
+  });
 }
 
 /* ── LDAP (원본 LdapView) ────────────────────────────────────── */

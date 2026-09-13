@@ -108,25 +108,26 @@ export default {
 
   '공유 대상 그룹': {
     render(ctx) {
+      // 전체 사용자 자동 그룹(all@)은 실제 사용자 수를 그대로 보여준다.
       const rows = [
-        { name: '연습학교', members: 1372, desc: 'Default audience with all users in your organization (updated automatically)' },
-        { name: '연습 교사그룹', members: 1, desc: '' },
+        { name: '연습학교', email: 'all@school.sen.ms.kr', members: ctx.state.users.length, desc: 'Default audience with all users in your organization (updated automatically)' },
+        ...ctx.state.groups.map((g) => ({ name: g.name, email: g.email, members: (g.members || []).length, desc: g.description || '' })),
       ];
       return `<div class="section-page wide admin-page">
         ${ctx.crumb('디렉터리 > 공유 대상 그룹')}
         <div class="page-title-row">
           <div><h1>공유 대상 그룹 ${ctx.icon('help', 18)}</h1><p class="page-desc">모든 공유 대상 그룹 표시</p></div>
-          <button class="primary-button" data-toast="대상 만들기">대상 만들기</button>
+          <button class="primary-button" data-modal="group">대상 만들기</button>
         </div>
         <div class="data-panel flat">
           <table class="admin-table">
-            <thead><tr><th></th><th>이름</th><th>회원</th><th>설명</th><th></th></tr></thead>
+            <thead><tr><th></th><th>이름</th><th>이메일</th><th>구성원</th><th>설명</th></tr></thead>
             <tbody>${rows.map((r) => `<tr>
               <td><input type="checkbox"></td>
               <td><b class="blue-text">${ctx.esc(r.name)}</b></td>
+              <td>${ctx.esc(r.email)}</td>
               <td>${r.members}</td>
               <td>${ctx.esc(r.desc || '—')}</td>
-              <td>${r.name === '연습 교사그룹' ? `<button class="link-btn" data-toast="작업">작업 ${ctx.icon('expand_more', 14)}</button>` : ''}</td>
             </tr>`).join('')}</tbody>
           </table>
         </div>
@@ -181,55 +182,143 @@ export default {
 
   '건물 및 리소스': {
     render(ctx) {
-      return ctx.adminListPage({
-        title: '건물 및 리소스',
-        breadcrumb: '디렉터리',
-        description: '회의실, 건물, 캘린더 리소스를 관리합니다.',
-        columns: ['이름', '유형', '층', '용량'],
-        rows: [['본관', '건물', '—', '—'], ['과학실', '회의실', '2층', '30'], ['도서관', '회의실', '1층', '40']],
-        actionLabel: '리소스 추가',
+      ctx.defineList('buildings', {
+        title: '건물', addLabel: '건물 추가',
+        fields: [
+          { name: 'name', label: '건물 이름', required: true, placeholder: '예: 본관' },
+          { name: 'floors', label: '층', placeholder: '예: 1층, 2층, 3층' },
+          { name: 'address', label: '주소', placeholder: '예: 서울특별시' },
+          { name: 'description', label: '설명', type: 'textarea' },
+        ],
       });
+      const buildings = ctx.collection('buildings');
+      const resources = ctx.collection('resources');
+      return `<div class="section-page wide admin-page">
+        ${ctx.crumb('디렉터리 > 건물 및 리소스 > 개요')}
+        <h1>건물 및 리소스</h1>
+        <p class="page-desc">회의실·공용 기기를 등록하면 선생님들이 캘린더에서 예약할 수 있습니다.</p>
+        <div class="chrome-widgets">
+          <article class="g-card" style="background:#fff;border:1px solid var(--g-divider)">
+            <h3 style="margin:0 0 14px;font-size:16px;font-weight:500">건물</h3>
+            <div class="stat-row"><span>등록된 건물<br><b>${buildings.length}</b></span></div>
+            <div style="margin-top:14px"><button class="outline-button" data-add="buildings">${ctx.icon('add', 18)} 건물 추가</button></div>
+          </article>
+          <article class="g-card" style="background:#fff;border:1px solid var(--g-divider)">
+            <h3 style="margin:0 0 14px;font-size:16px;font-weight:500">리소스</h3>
+            <div class="stat-row"><span>회의실·기기<br><b>${resources.length}</b></span></div>
+            <div style="margin-top:14px"><button class="outline-button" data-nav="directory::건물 및 리소스/리소스 관리">${ctx.icon('chevron_right', 18)} 리소스 관리로 이동</button></div>
+          </article>
+        </div>
+      </div>`;
     },
   },
 
-  '건물 및 리소스/건물 관리': {
-    render(ctx) {
-      return ctx.adminListPage({
-        title: '건물 관리',
-        breadcrumb: '디렉터리 > 건물 및 리소스',
-        description: '학교 건물과 층 정보를 등록합니다.',
-        columns: ['건물 이름', '설명', '층', '주소'],
-        rows: [['본관', '교무실·교실', '1~4층', '서울특별시'], ['별관', '특별실', '1~2층', '서울특별시']],
-        actionLabel: '건물 추가',
-      });
-    },
-  },
+  get '건물 및 리소스/개요'() { return this['건물 및 리소스']; },
+
   '건물 및 리소스/리소스 관리': {
     render(ctx) {
-      return ctx.adminListPage({
-        title: '리소스 관리',
-        breadcrumb: '디렉터리 > 건물 및 리소스',
-        description: '캘린더에서 예약할 수 있는 회의실과 공용 기기입니다.',
-        columns: ['리소스 이름', '유형', '건물 · 층', '수용 인원'],
-        rows: [
-          ['과학실', '회의실', '본관 · 2층', '30'],
-          ['도서관', '회의실', '본관 · 1층', '40'],
-          ['이동형 빔프로젝터', '기타 리소스', '별관 · 1층', '-'],
+      ctx.defineList('buildings', {
+        title: '건물', addLabel: '건물 추가',
+        fields: [
+          { name: 'name', label: '건물 이름', required: true, placeholder: '예: 본관' },
+          { name: 'floors', label: '층', placeholder: '예: 1층, 2층, 3층' },
+          { name: 'address', label: '주소', placeholder: '예: 서울특별시' },
+          { name: 'description', label: '설명', type: 'textarea' },
         ],
-        actionLabel: '리소스 추가',
       });
+      const buildings = ctx.collection('buildings');
+      const resources = ctx.collection('resources');
+      const page = ctx.listPage({
+        key: 'resources',
+        title: '리소스',
+        breadcrumb: '건물 및 리소스',
+        description: '',
+        addLabel: '리소스 추가',
+        emptyTitle: '리소스가 없습니다',
+        emptyHint: '회의실이나 공용 기기를 추가하면 캘린더에서 예약할 수 있습니다.',
+        columns: [
+          { key: 'name', label: '리소스' },
+          { key: 'building', label: '건물' },
+          { key: 'floor', label: '층' },
+          { key: 'category', label: '카테고리', editable: true, options: ['회의실', '기타 리소스'] },
+          { key: 'type', label: '유형' },
+          { key: 'capacity', label: '수용 인원' },
+        ],
+        fields: [
+          { name: 'category', label: '카테고리', type: 'select', options: ['(설정된 카테고리 없음)', '회의실', '기타 리소스'], required: true },
+          { name: 'type', label: '유형', placeholder: '예: 전화 부스, 어머니 방, 자전거 등' },
+          { name: 'building', label: '건물', type: 'select', options: () => ['정의된 건물 없음'].concat(ctx.collection('buildings').map((b) => b.name)) },
+          { name: 'floor', label: '층', placeholder: '예: 2층' },
+          { name: 'name', label: '리소스 이름', required: true, placeholder: '예: 과학실' },
+          { name: 'capacity', label: '수용 인원', placeholder: '예: 30' },
+          { name: 'features', label: '기능', placeholder: '예: 전자칠판, 화상회의' },
+          { name: 'description', label: '사용자가 볼 수 있는 설명', type: 'textarea' },
+          { name: 'excluded', label: '회의실 설정', type: 'checkbox', checkboxLabel: '회의실 예약 해제에서 제외' },
+        ],
+      });
+      const buildingPane = `<aside class="building-pane">
+        <h2>건물</h2>
+        ${buildings.length
+          ? `<div class="building-list">${buildings.map((b) => `<button data-toast="${ctx.esc(b.name)}"><span>${ctx.esc(b.name)}</span><small>${ctx.esc(b.floors || '—')}</small></button>`).join('')}
+             </div><button class="link-btn" data-add="buildings" style="margin-top:10px">${ctx.icon('add', 16)} 건물 추가</button>`
+          : `<p class="building-empty">빌딩을 찾을 수 없습니다.<br><button class="link-btn" data-add="buildings">건물 추가</button></p>`}
+      </aside>`;
+      // 리소스 목록 왼쪽에 건물 패널을 붙인다
+      return page.replace('<div class="data-panel flat list-panel">', `<div class="resource-layout">${buildingPane}<div class="data-panel flat list-panel">`)
+        .replace(/<\/div>\s*$/, '</div></div>');
     },
   },
-  '건물 및 리소스/기능 관리': {
+
+  '건물 및 리소스/회의실 통계': {
     render(ctx) {
-      return ctx.adminListPage({
-        title: '기능 관리',
-        breadcrumb: '디렉터리 > 건물 및 리소스',
-        description: '회의실이 갖춘 기능(화상회의 장비 등)을 정의합니다.',
-        columns: ['기능 이름', '설명', '적용 리소스', '상태'],
-        rows: [['전자칠판', '터치 디스플레이', '과학실, 도서관', '사용'], ['화상회의', 'Meet 하드웨어', '도서관', '사용']],
-        actionLabel: '기능 추가',
-      });
+      const resources = ctx.collection('resources');
+      return `<div class="section-page wide admin-page">
+        ${ctx.crumb('건물 및 리소스 > 회의실 통계 대시보드')}
+        <div class="page-title-row">
+          <div><h1>회의실 통계</h1><p class="page-desc">회의실 예약 방법 및 회의실 사용 방식이 표시됩니다.</p></div>
+          <button class="outline-button" data-toast="기간 선택">2026. 9. 5. - 2026. 9. 11.</button>
+        </div>
+        <div class="practice-strip">${ctx.icon('info', 20)}<span>Google Meet 하드웨어를 사용하면 더 정확한 점유율 데이터를 얻을 수 있습니다.</span><button data-toast="자세히 알아보기">자세히 알아보기</button></div>
+        <div class="report-cards">
+          <article><small>예약 수</small><h3>지난 7일</h3><strong>0</strong></article>
+          <article><small>등록된 회의실</small><h3>전체</h3><strong>${resources.length}</strong></article>
+          <article><small>예약되지 않은 회의실 수용 인원</small><h3>전체</h3><strong>100%</strong></article>
+        </div>
+        ${resources.length ? '' : `<div class="list-empty" style="border:1px solid var(--g-divider);border-radius:12px">
+          ${ctx.icon('inbox', 40)}
+          <strong>표시할 예약 데이터가 없습니다</strong>
+          <p>먼저 리소스를 등록하면 예약 통계가 여기에 표시됩니다.</p>
+          <button class="primary-button" data-nav="directory::건물 및 리소스/리소스 관리">${ctx.icon('add', 18)} 리소스 관리로 이동</button>
+        </div>`}
+      </div>`;
+    },
+  },
+
+  '건물 및 리소스/회의실 설정': {
+    render(ctx) {
+      const scope = 'rooms';
+      const card = (title, desc, name, value, options) => `<article class="settings-card">
+        <header><div><h2>${ctx.esc(title)}</h2><p>${ctx.esc(desc)}</p></div>${ctx.icon('expand_more', 18)}</header>
+        <div class="card-kv"><strong>${ctx.esc(name)}</strong>${ctx.editable({ scope, name: `회의실 설정 · ${name}`, value, options, section: '전체 회의실 설정' })}</div>
+      </article>`;
+      return `<div class="section-page wide admin-page">
+        ${ctx.crumb('건물 및 리소스 > 전체 회의실 설정')}
+        <h1>전체 회의실 설정</h1>
+        <div class="dir-settings-layout">
+          <div class="room-settings-hero"><div class="section-icon">${ctx.icon('apartment', 26)}</div><h2>건물 및 리소스</h2></div>
+          <div class="settings-cards">
+            ${card('거부된 일정의 회의실이 예약 해제됨', '회의실 예약 해제', '상태',
+              '한 명을 제외한 모든 참석자가 일정을 거부한 경우 회의실이 예약 해제됩니다.',
+              ['한 명을 제외한 모든 참석자가 일정을 거부한 경우 회의실이 예약 해제됩니다.', '예약 해제 사용 안함'])}
+            ${card('회의실 예약 해제에서 회의실 제외', '예약 해제되지 않는 회의실입니다.', '제외된 회의실', '회의실 없음',
+              ['회의실 없음', '일부 회의실 제외', '모든 회의실 제외'])}
+            ${card('회의실 예약 해제에서 사용자 그룹 제외', '제외 사용자가 일정 주최자인 경우 회의실이 예약 해제되지 않습니다.', '제외된 그룹', '설정된 그룹 없음',
+              ['설정된 그룹 없음', '교사 그룹 제외', '관리자 그룹 제외'])}
+            ${card('자동 회의실 교체', '회의실에서 회의 초대를 거부하면 크기와 장비 수준이 유사한 동일 건물의 다른 회의실로 교체됩니다.', '자동 회의실 교체', '자동 회의실 교체 허용',
+              ['자동 회의실 교체 허용', '자동 회의실 교체 사용 안함'])}
+          </div>
+        </div>
+      </div>`;
     },
   },
 

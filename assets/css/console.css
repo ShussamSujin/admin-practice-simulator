@@ -465,3 +465,50 @@ td .editable,.settings-card-grid .editable{margin-left:-8px}
 .account-actions{display:flex;flex-direction:column;gap:8px}
 .account-actions .outline-button{width:100%;justify-content:center}
 @media(max-width:520px){.account-popover{top:auto;bottom:16px;right:16px;left:16px;width:auto}}
+
+/* ---------- 앱 추가(소스 선택) ---------- */
+.modal.app-source{width:min(520px,100%)}
+.source-list{display:flex;flex-direction:column;gap:4px;padding:8px 16px 24px}
+.source-list button{
+  display:flex;align-items:center;gap:16px;padding:14px 12px;border:0;border-radius:12px;
+  background:none;text-align:left;color:#1f1f1f;
+}
+.source-list button:hover{background:#f1f3f4}
+.source-list button>span:nth-child(2){display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.source-list strong{font-size:14px;font-weight:500}
+.source-list small{color:var(--g-on-surface-var);font-size:12px;line-height:1.5}
+.source-list .msi{color:#5f6368;flex:0 0 auto}
+.source-icon{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;flex:0 0 auto}
+.source-icon .msi{color:inherit}
+.source-icon.store{background:#e8f0fe;color:#1967d2}
+.source-icon.url{background:#e6f4ea;color:#188038}
+.source-icon.id{background:#fef7e0;color:#e37400}
+.source-icon.play{background:#fce8e6;color:#d93025}
+.fab-yellow{transition:box-shadow .12s,transform .12s}
+.fab-yellow:hover{box-shadow:0 6px 16px rgba(0,0,0,.28);transform:translateY(-1px)}
+
+/* ---------- 추가 가능한 목록 ---------- */
+.list-panel{position:relative;min-height:320px}
+.list-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:64px 24px;text-align:center}
+.list-empty .msi{font-size:40px;color:#c4c7c5}
+.list-empty strong{font-family:var(--g-sans);font-size:17px;font-weight:400;color:#1f1f1f}
+.list-empty p{margin:0 0 10px;max-width:420px;color:var(--g-on-surface-var);font-size:13px;line-height:1.6}
+.field-help{color:var(--g-muted);font-size:12px}
+.practice-form .switch-line{display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;background:#f8fafd}
+.practice-form .switch-line input{width:18px;height:18px;min-height:0;accent-color:var(--g-blue)}
+.practice-form .switch-line strong{font-size:13px;font-weight:500}
+
+/* ---------- 건물 및 리소스 ---------- */
+.resource-layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;position:relative}
+.building-pane{border:1px solid var(--g-divider);border-radius:12px;background:#fff;padding:16px;height:fit-content}
+.building-pane h2{margin:0 0 12px;font-size:16px;font-weight:500}
+.building-empty{color:var(--g-on-surface-var);font-size:13px;line-height:1.7}
+.building-empty .link-btn{display:inline-block;margin-top:6px}
+.building-list{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.building-list button{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border:0;border-radius:8px;background:none;text-align:left;font-size:14px;color:#1f1f1f}
+.building-list button:hover{background:var(--g-hover)}
+.building-list small{color:var(--g-muted);font-size:12px}
+.room-settings-hero{display:flex;align-items:center;gap:14px;padding:22px;border:1px solid var(--g-divider);border-radius:12px;background:#fff;height:fit-content}
+.room-settings-hero .section-icon{background:#e8f0fe;color:#1967d2}
+.room-settings-hero h2{margin:0;font-size:18px;font-weight:400}
+@media(max-width:900px){.resource-layout{grid-template-columns:1fr}}

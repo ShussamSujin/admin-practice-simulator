@@ -27,7 +27,7 @@ const SEED = {
 
 const PROFILES = {
   sen: { name: '연습학교 관리자', email: 'admin@practice.senedu.kr', short: '학교', role: '학교 관리자(센스쿨)' },
-  full: { name: '최고 관리자', email: 'superadmin@practice.senedu.kr', short: '최고', role: '최고 관리자' },
+  full: { name: '최고 관리자', email: 'admin@school.sen.ms.kr', short: '최고', role: '최고 관리자' },
 };
 
 const state = {
@@ -308,6 +308,7 @@ function toast(message) {
   const root = $('#toast-root');
   root.innerHTML = `<div class="toast" role="status">${icon('info', 20)}<span>${esc(message)}</span><button data-close-toast>확인</button></div>`;
   translateDom(root, state.lang);
+  applyDomain(root);
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { root.innerHTML = ''; }, 4200);
 }
@@ -437,6 +438,7 @@ function renderView() {
   root.innerHTML = html;
   if (view && typeof view.mount === 'function') view.mount(root, ctx);
   translateDom(root, state.lang);
+  applyDomain(root);
 }
 
 function deniedPage(section) {
@@ -482,6 +484,7 @@ function openModal(kind, options) {
   modalState = { kind, options: options || {} };
   renderModal();
   translateDom($('#modal-root'), state.lang);
+  applyDomain($('#modal-root'));
 }
 function closeModal() { modalState = null; $('#modal-root').innerHTML = ''; }
 
@@ -1068,11 +1071,30 @@ function renderShell() {
   workspace.classList.toggle('rail-open', state.railOpen);
 }
 
+/** 모드별 표시 도메인: 센스쿨=practice.senedu.kr, 최고관리자=school.sen.ms.kr (저장은 항상 practice) */
+function applyDomain(root) {
+  if (!root || state.mode !== 'full') return;
+  const FROM = 'practice.senedu.kr';
+  const TO = 'school.sen.ms.kr';
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.nodeValue.includes(FROM)) node.nodeValue = node.nodeValue.split(FROM).join(TO);
+  }
+  root.querySelectorAll('[placeholder],[title]').forEach((el) => {
+    ['placeholder', 'title'].forEach((attr) => {
+      const v = el.getAttribute(attr);
+      if (v && v.includes(FROM)) el.setAttribute(attr, v.split(FROM).join(TO));
+    });
+  });
+}
+
 function applyLang() {
   document.documentElement.lang = state.lang;
   document.querySelectorAll('.lang-toggle').forEach((btn) => { btn.textContent = state.lang === 'ko' ? 'English' : '한국어'; });
   translateDom($('#signin'), state.lang);
   translateDom($('#app'), state.lang);
+  applyDomain($('#app'));
 }
 
 function render() {

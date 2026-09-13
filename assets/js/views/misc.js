@@ -1152,19 +1152,58 @@ Object.assign(security, {
 const data = {
   '데이터 이전': {
     render(ctx) {
+      // 카드를 누르면 실제로 이전 작업을 만드는 양식이 열린다 (유형별 스키마 2개)
+      ctx.defineList('migrations-email', {
+        title: '이메일 이전', addLabel: '이전 시작',
+        fields: [
+          { name: 'source', label: '가져올 서버', type: 'select', options: ['Gmail(다른 Google 계정)', 'Microsoft Exchange', 'IMAP 서버'] },
+          { name: 'account', label: '출발지 계정', required: true, placeholder: '예: old-admin@previous-school.kr' },
+          { name: 'target', label: '가져올 사용자', placeholder: '예: admin@practice.senedu.kr' },
+          { name: 'range', label: '이전 범위', type: 'select', options: ['전체 메일', '최근 1년', '최근 3개월'] },
+          { name: 'type', label: '유형', type: 'select', options: ['이메일'] },
+        ],
+      });
+      ctx.defineList('migrations-cal', {
+        title: '캘린더 및 연락처 이전', addLabel: '이전 시작',
+        fields: [
+          { name: 'source', label: '가져올 서비스', type: 'select', options: ['Google 캘린더·주소록', 'Microsoft Exchange', 'CSV/ICS 파일'] },
+          { name: 'account', label: '출발지 계정', required: true, placeholder: '예: old-admin@previous-school.kr' },
+          { name: 'target', label: '가져올 사용자', placeholder: '예: admin@practice.senedu.kr' },
+          { name: 'type', label: '유형', type: 'select', options: ['캘린더 및 연락처'] },
+        ],
+      });
+      const jobs = [
+        ...ctx.collection('migrations-email').map((j) => ({ ...j, kind: '이메일', key: 'migrations-email' })),
+        ...ctx.collection('migrations-cal').map((j) => ({ ...j, kind: '캘린더 및 연락처', key: 'migrations-cal' })),
+      ];
       return `<div class="section-page wide admin-page">
         ${ctx.crumb('데이터 > 데이터 이전')}
         <h1>데이터 이전</h1>
-        <p class="page-desc">이전 학교나 다른 계정에서 이메일, 캘린더, 연락처를 가져옵니다.</p>
+        <p class="page-desc">이전 학교나 다른 계정에서 이메일, 캘린더, 연락처를 가져옵니다. 카드를 누르면 이전 작업을 설정할 수 있습니다.</p>
         <div class="ext-dir-cards">
-          <article class="ext-card" data-toast="이메일 이전">
+          <button class="ext-card" data-add="migrations-email">
             <div class="ext-illu sync"></div><h2>이메일</h2>
             <ul><li>Gmail, Microsoft Exchange, IMAP 서버에서 가져오기</li><li>사용자별 또는 일괄 이전 지원</li></ul>
-          </article>
-          <article class="ext-card" data-toast="캘린더 이전">
+            <span class="link-btn">${ctx.icon('add', 16)} 이전 설정</span>
+          </button>
+          <button class="ext-card" data-add="migrations-cal">
             <div class="ext-illu scim"></div><h2>캘린더 및 연락처</h2>
             <ul><li>일정과 연락처를 Google 계정으로 이전</li><li>이전 상태를 보고서로 확인</li></ul>
-          </article>
+            <span class="link-btn">${ctx.icon('add', 16)} 이전 설정</span>
+          </button>
+        </div>
+        <div class="data-panel flat" style="margin-top:20px">
+          <div class="action-strip"><strong>이전 작업 | ${jobs.length ? `${jobs.length}건` : '없음'}</strong></div>
+          ${jobs.length ? `<table class="admin-table">
+            <thead><tr><th>유형</th><th>출발지</th><th>가져올 사용자</th><th>상태</th><th class="col-actions"></th></tr></thead>
+            <tbody>${jobs.map((j) => `<tr>
+              <td><b class="blue-text">${ctx.esc(j.kind)}</b></td>
+              <td>${ctx.esc(j.account || '—')}</td>
+              <td>${ctx.esc(j.target || '—')}</td>
+              <td>${ctx.editable({ scope: 'migrations', name: `${j.id} · 상태`, value: '진행 중', section: '데이터 이전', options: ['진행 중', '완료됨', '일시중지됨', '실패'] })}</td>
+              <td class="col-actions"><button class="row-action danger" data-action="delete-record" data-key="${ctx.esc(j.key)}" data-id="${ctx.esc(j.id)}" title="삭제">${ctx.icon('delete', 18)}</button></td>
+            </tr>`).join('')}</tbody>
+          </table>` : `<div class="empty-hint">아직 시작한 이전 작업이 없습니다. 위 카드에서 ‘이전 설정’을 눌러 보세요.</div>`}
         </div>
       </div>`;
     },

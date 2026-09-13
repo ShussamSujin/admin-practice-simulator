@@ -518,3 +518,7 @@ td .editable,.settings-card-grid .editable{margin-left:-8px}
 .chart-legend label{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#3c4043;cursor:default}
 .legend-box{width:18px;height:18px;display:inline-grid;place-items:center;border-radius:3px;color:#fff;flex:0 0 auto}
 .legend-box .msi{font-size:14px;font-variation-settings:'wght' 600}
+
+/* ext-card 를 버튼으로 쓸 때 */
+button.ext-card{font:inherit;text-align:left;display:block;width:100%}
+button.ext-card .link-btn{display:inline-flex;align-items:center;gap:4px;margin-top:14px}

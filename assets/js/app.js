@@ -50,9 +50,15 @@ const state = {
 
 let policies = {};
 
+/** 예전 연습 데이터에 남아 있는 옛 도메인을 새 도메인으로 바꿔서 불러온다 */
+function migrateDomain(value) {
+  if (value === null || value === undefined) return value;
+  return JSON.parse(JSON.stringify(value).split('school.sen.ms.kr').join('practice.senedu.kr'));
+}
+
 function load() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    const saved = migrateDomain(JSON.parse(localStorage.getItem(STORE_KEY) || 'null'));
     if (saved) {
       state.mode = saved.mode || 'sen';
       state.signedIn = !!saved.signedIn;
@@ -62,7 +68,7 @@ function load() {
       state.apps = saved.apps || state.apps;
       state.records = saved.records || {};
     }
-    policies = JSON.parse(localStorage.getItem(POLICY_KEY) || '{}');
+    policies = migrateDomain(JSON.parse(localStorage.getItem(POLICY_KEY) || '{}'));
   } catch { /* 저장 값이 깨졌으면 기본값 사용 */ }
 }
 function save() {

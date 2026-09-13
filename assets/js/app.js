@@ -6,6 +6,7 @@ import miscViews from './views/misc.js';
 import chromeViews, { SAMPLE_APPS } from './views/chrome.js';
 import appsViews from './views/apps.js';
 import genaiViews from './views/genai.js';
+import { translateDom } from './i18n.js';
 
 /* ---------------- 상태 ---------------- */
 const STORE_KEY = 'admin-sim:v5';
@@ -44,6 +45,7 @@ const state = {
   records: {},
   local: {},
   expanded: {},
+  lang: (typeof localStorage !== 'undefined' && localStorage.getItem('admin-sim:lang')) || 'ko',
 };
 
 let policies = {};
@@ -299,6 +301,7 @@ let toastTimer;
 function toast(message) {
   const root = $('#toast-root');
   root.innerHTML = `<div class="toast" role="status">${icon('info', 20)}<span>${esc(message)}</span><button data-close-toast>확인</button></div>`;
+  translateDom(root, state.lang);
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { root.innerHTML = ''; }, 4200);
 }
@@ -378,6 +381,7 @@ function renderNav() {
       ${open ? renderNavNodes(section.id, tree, 0) : ''}
     </div>`;
   }).join('');
+  translateDom($('#nav-list'), state.lang);
 }
 
 /* ---------------- 렌더: 본문 ---------------- */
@@ -426,6 +430,7 @@ function renderView() {
   }
   root.innerHTML = html;
   if (view && typeof view.mount === 'function') view.mount(root, ctx);
+  translateDom(root, state.lang);
 }
 
 function deniedPage(section) {
@@ -470,6 +475,7 @@ let modalState = null;
 function openModal(kind, options) {
   modalState = { kind, options: options || {} };
   renderModal();
+  translateDom($('#modal-root'), state.lang);
 }
 function closeModal() { modalState = null; $('#modal-root').innerHTML = ''; }
 
@@ -589,7 +595,39 @@ function renderModal() {
           <p style="color:#5f6368">문의: gajungssamzzang@gmail.com</p>`,
       },
     };
-    const doc = DOCS[options.legal] || DOCS.terms;
+    const DOCS_EN = {
+      privacy: {
+        title: 'Privacy Policy',
+        body: `
+          <p><b>This simulator collects no personal information whatsoever.</b></p>
+          <p>1. <b>Nothing is collected</b> - there is no sign-up or login, and no name, email, or password is ever sent anywhere. The site is fully static with no server.</p>
+          <p>2. <b>Where data lives</b> - anything you enter during practice (fictional users, organizational units, settings) is kept <b>only in your own browser (localStorage)</b> and is never transmitted to anyone, including the creator.</p>
+          <p>3. <b>How to delete</b> - open the profile menu (top right) and press <b>'Reset practice data'</b> to erase everything instantly. Clearing browsing data also removes it.</p>
+          <p>4. <b>No cookies or tracking</b> - no cookies, ads, or analytics are used.</p>
+          <p>5. <b>Note</b> - please avoid typing real student or staff names/accounts. Even though nothing leaves your browser, reset after use on shared devices.</p>
+          <p style="color:#5f6368">Contact: gajungssamzzang@gmail.com</p>`,
+      },
+      terms: {
+        title: 'Terms of Service',
+        body: `
+          <p>1. <b>Purpose</b> - this site is an unofficial training simulator built so that <b>IT-lead teachers of Seoul schools can safely practice the Google Admin console</b>.</p>
+          <p>2. <b>No affiliation with Google</b> - this site is <b>not affiliated with Google LLC</b> and is not made, endorsed, or sponsored by Google. The interface imitates the Admin console solely for education. Google, Google Workspace, and Chrome are trademarks of Google LLC.</p>
+          <p>3. <b>Fake environment</b> - every setting here is fictional practice data and has no effect on any real Google Workspace organization.</p>
+          <p>4. <b>No warranty</b> - provided "as is" for education; screens may differ from the real console. Always verify real settings at admin.google.com.</p>
+          <p>5. <b>Created by</b> - (c) Google Certified Trainer &amp; Innovator Sujin Lee</p>
+          <p style="color:#5f6368">Contact: gajungssamzzang@gmail.com</p>`,
+      },
+      billing: {
+        title: 'Billing Terms',
+        body: `
+          <p><b>This simulator is completely free.</b></p>
+          <p>1. No fees are ever charged, and there is no feature that accepts payment details.</p>
+          <p>2. The 'Billing', 'Subscriptions', and 'Licenses' menus are <b>fake screens</b> for practicing the real console layout and have nothing to do with actual payments.</p>
+          <p>3. This site is unrelated to Google LLC; real Google Workspace pricing and billing follow admin.google.com and Google's official terms.</p>
+          <p style="color:#5f6368">Contact: gajungssamzzang@gmail.com</p>`,
+      },
+    };
+    const doc = (state.lang === 'en' ? DOCS_EN : DOCS)[options.legal] || DOCS.terms;
     root.innerHTML = modalShell(doc.title, '연수용 시뮬레이터 안내 문서', `
       <div class="legal-doc">${doc.body}
         <div class="form-actions"><button type="button" class="filled" data-close-modal>확인</button></div>
@@ -697,9 +735,15 @@ function renderModal() {
 
 /* ---------------- 이벤트 위임 ---------------- */
 document.addEventListener('click', (event) => {
-  const target = event.target.closest('[data-signin],[data-mode],[data-nav],[data-toast],[data-set],[data-policy],[data-edit],[data-modal],[data-add],[data-close-modal],[data-backdrop],[data-close-toast],[data-policy-reset],[data-action]');
+  const target = event.target.closest('.lang-toggle,[data-signin],[data-mode],[data-nav],[data-toast],[data-set],[data-policy],[data-edit],[data-modal],[data-add],[data-close-modal],[data-backdrop],[data-close-toast],[data-policy-reset],[data-action]');
   if (!target) return;
 
+  if (target.classList && target.classList.contains('lang-toggle')) {
+    state.lang = state.lang === 'ko' ? 'en' : 'ko';
+    try { localStorage.setItem('admin-sim:lang', state.lang); } catch { /* noop */ }
+    render();
+    return;
+  }
   if (target.hasAttribute('data-signin')) {
     state.mode = target.getAttribute('data-signin');
     state.signedIn = true;
@@ -1018,13 +1062,22 @@ function renderShell() {
   workspace.classList.toggle('rail-open', state.railOpen);
 }
 
+function applyLang() {
+  document.documentElement.lang = state.lang;
+  document.querySelectorAll('.lang-toggle').forEach((btn) => { btn.textContent = state.lang === 'ko' ? 'English' : '한국어'; });
+  translateDom($('#signin'), state.lang);
+  translateDom($('#app'), state.lang);
+}
+
 function render() {
   $('#signin').hidden = state.signedIn;
   $('#app').hidden = !state.signedIn;
-  if (!state.signedIn) return;
-  renderShell();
-  renderNav();
-  renderView();
+  if (state.signedIn) {
+    renderShell();
+    renderNav();
+    renderView();
+  }
+  applyLang();
 }
 
 /* ---------------- 초기화 ---------------- */

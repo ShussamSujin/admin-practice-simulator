@@ -528,3 +528,12 @@ button.ext-card .link-btn{display:inline-flex;align-items:center;gap:4px;margin-
 .legal-doc p{margin:0 0 12px}
 .legal-doc b{color:#1f1f1f}
 .signin-footer a{color:var(--g-blue)}
+
+/* ---------- 언어 토글 ---------- */
+.lang-toggle{
+  height:30px;padding:0 14px;margin-right:4px;border:1px solid var(--g-outline);border-radius:999px;
+  background:#fff;color:#444746;font-size:12px;font-weight:500;white-space:nowrap;
+}
+.lang-toggle:hover{background:#f1f3f4}
+.signin-lang{position:fixed;top:16px;right:16px;z-index:10}
+@media(max-width:860px){.lang-toggle{padding:0 10px}}
